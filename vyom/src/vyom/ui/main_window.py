@@ -56,6 +56,7 @@ from vyom.interaction.engine import (
 )
 from vyom.interaction.events import InteractionEvent, InteractionState
 from vyom.interaction.worker import InteractionWorker
+from vyom.protocol import ProcedureEngine, ProtocolDefinition
 from vyom.vision.observations import PerceptionFrameObservation
 
 logger = get_logger("ui.main_window")
@@ -117,6 +118,9 @@ class VyomMainWindow(QMainWindow):
         # Temporal Hand-Object Interaction Recognition Subsystem (Off GUI Thread)
         self.interaction_worker = InteractionWorker(InteractionConfig(), self)
         self._last_logged_interaction_state: Optional[str] = None
+
+        # Deterministic Procedure Validation & Compliance Engine (Prompt 9)
+        self.procedure_engine = ProcedureEngine()
 
         self._init_ui()
         self._init_data()
@@ -196,6 +200,8 @@ class VyomMainWindow(QMainWindow):
         if self.config.default_protocol in protocol_files:
             try:
                 proto = self.config_manager.load_protocol(self.config.default_protocol)
+                if isinstance(proto, ProtocolDefinition):
+                    self.procedure_engine.set_protocol(proto)
                 self.protocol_panel.load_protocol(proto)
             except Exception as e:
                 logger.error("Failed to load initial protocol: %s", e)
@@ -456,6 +462,10 @@ class VyomMainWindow(QMainWindow):
         self.top_bar.set_session_status("ACTIVE")
         self.live_monitor.set_camera_status(True, source.get_metadata().source_label)
 
+        # Start procedure compliance monitoring
+        eval_res = self.procedure_engine.start()
+        self.protocol_panel.update_evaluation_result(eval_res)
+
         self._capture_worker.start()
 
     @Slot(QImage, int, float)
@@ -621,7 +631,7 @@ class VyomMainWindow(QMainWindow):
 
     @Slot(object)
     def _on_interaction_event_emitted(self, event: object) -> None:
-        """Handle discrete temporal interaction event and append to audit timeline."""
+        """Handle discrete temporal interaction event, update compliance state, and append to audit timeline."""
         if not isinstance(event, InteractionEvent):
             return
 
@@ -637,6 +647,39 @@ class VyomMainWindow(QMainWindow):
             description=event.summary_line(),
             hash_digest=event.event_id,
         )
+
+        # Prompt 9: Evaluate event against deterministic ProcedureEngine
+        prev_step_id = self.procedure_engine.current_step_id
+        eval_res = self.procedure_engine.evaluate_event(event)
+        self.protocol_panel.update_evaluation_result(eval_res)
+
+        # Step progression notification
+        if prev_step_id is not None and eval_res.current_step_id != prev_step_id:
+            self.event_panel.add_event(
+                severity="NOTICE",
+                source="COMPLIANCE",
+                description=f"Step Completed: [{prev_step_id}] -> Advancing to [{eval_res.current_step_id or 'FINISH'}]",
+                hash_digest=f"step_complete:{prev_step_id}",
+            )
+
+        # Full procedure completion notification
+        if eval_res.is_success:
+            self.event_panel.add_event(
+                severity="NOTICE",
+                source="COMPLIANCE",
+                description=f"Experiment Procedure Fully Completed: {eval_res.protocol_id}",
+                hash_digest=f"proto_complete:{eval_res.protocol_id}",
+            )
+
+        # Log new compliance violations
+        for violation in eval_res.new_violations:
+            viol_sev = "CRITICAL" if violation.severity == "critical" else "WARNING"
+            self.event_panel.add_event(
+                severity=viol_sev,
+                source="COMPLIANCE",
+                description=f"[{violation.violation_type.value}] {violation.explanation}",
+                hash_digest=violation.violation_id,
+            )
 
     @Slot(str, int, int, float)
     def _on_source_opened(self, source_name: str, width: int, height: int, fps: float) -> None:
@@ -713,6 +756,7 @@ class VyomMainWindow(QMainWindow):
             self._capture_worker.pause_capture()
             self.session_panel.set_session_state("PAUSED")
             self.top_bar.set_session_status("PAUSED")
+            self.protocol_panel.update_evaluation_result(self.procedure_engine.pause())
             self.event_panel.add_event(
                 severity="WARNING",
                 source="SESSION",
@@ -723,6 +767,7 @@ class VyomMainWindow(QMainWindow):
             self._capture_worker.resume_capture()
             self.session_panel.set_session_state("ACTIVE")
             self.top_bar.set_session_status("ACTIVE")
+            self.protocol_panel.update_evaluation_result(self.procedure_engine.resume())
             self.event_panel.add_event(
                 severity="INFO",
                 source="SESSION",
@@ -744,6 +789,9 @@ class VyomMainWindow(QMainWindow):
         if hasattr(self, "interaction_worker") and self.interaction_worker is not None:
             self.interaction_worker.reset()
 
+        self.procedure_engine.stop()
+        self.protocol_panel.update_evaluation_result(self.procedure_engine.get_state())
+
         self._last_logged_hand_count = 0
         self._last_logged_obb_count = 0
         self._session_state = "IDLE"
@@ -759,7 +807,8 @@ class VyomMainWindow(QMainWindow):
     @Slot()
     def _handle_reset_session(self) -> None:
         self._handle_stop_session()
-        self.protocol_panel.set_current_step(0)
+        self.procedure_engine.reset()
+        self.protocol_panel.update_evaluation_result(self.procedure_engine.get_state())
         self.event_panel.clear_timeline()
         self.event_panel.add_event(
             severity="INFO",
@@ -773,6 +822,8 @@ class VyomMainWindow(QMainWindow):
             return
         try:
             proto = self.config_manager.load_protocol(protocol_name)
+            if isinstance(proto, ProtocolDefinition):
+                self.procedure_engine.set_protocol(proto)
             self.protocol_panel.load_protocol(proto)
             self.event_panel.add_event(
                 severity="INFO",

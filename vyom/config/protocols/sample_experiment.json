@@ -2,42 +2,91 @@
   "protocol_id": "sample-specimen-transfer",
   "protocol_version": "1.0.0",
   "experiment_name": "Sample Specimen Transfer - DEMO",
-  "description": "Synthetic demo protocol for software testing only",
+  "description": "Synthetic demonstration protocol for specimen tube transfer across experiment rig zones. FOR TESTING AND DEMO ONLY.",
   "strict_order": true,
   "alert_cooldown_seconds": 3.0,
+  "target_zones": {
+    "rack_zone_a": {
+      "zone_id": "rack_zone_a",
+      "name": "Target Tube Rack Zone A",
+      "min_bounds_m": [-0.15, -0.15, 0.0],
+      "max_bounds_m": [0.15, 0.15, 0.25],
+      "center_m": [0.0, 0.0, 0.10],
+      "radius_m": 0.20
+    }
+  },
   "steps": [
     {
       "step_id": "STEP_01",
       "order": 1,
-      "title": "Pick up specimen container",
-      "instruction": "Pick up the specimen container from the holder.",
-      "expected_event": "OBJECT_PICKED_UP",
+      "title": "Pick up centrifuge tube",
+      "instruction": "Carefully pick up the centrifuge tube from the specimen stand.",
+      "expected_event": "PICKUP_CANDIDATE",
       "required_objects": [
-        "specimen_container",
-        "holder"
+        "centrifuge_tube"
       ],
-      "min_confidence": 0.80,
-      "stable_duration_ms": 600,
+      "preconditions": [],
+      "min_confidence": 0.75,
+      "stable_duration_ms": 400,
       "timeout_seconds": 30,
       "severity": "warning",
-      "voice_message": "Please pick up the specimen container."
+      "voice_message": "Please pick up the centrifuge tube."
     },
     {
       "step_id": "STEP_02",
       "order": 2,
-      "title": "Place specimen in module",
-      "instruction": "Place the specimen container inside the module.",
-      "expected_event": "OBJECT_PLACED_IN_TARGET",
+      "title": "Transfer tube towards target rack",
+      "instruction": "Move the centrifuge tube towards the target tube rack.",
+      "expected_event": "OBJECT_MOVEMENT",
       "required_objects": [
-        "specimen_container",
-        "experiment_module"
+        "centrifuge_tube"
       ],
-      "min_confidence": 0.85,
-      "stable_duration_ms": 800,
+      "preconditions": [
+        "STEP_01"
+      ],
+      "min_confidence": 0.70,
+      "stable_duration_ms": 300,
+      "timeout_seconds": 30,
+      "severity": "warning",
+      "voice_message": "Move the centrifuge tube towards the target tube rack."
+    },
+    {
+      "step_id": "STEP_03",
+      "order": 3,
+      "title": "Place tube in tube rack",
+      "instruction": "Carefully place the centrifuge tube into the target tube rack.",
+      "expected_event": "PLACEMENT_CANDIDATE",
+      "required_objects": [
+        "centrifuge_tube",
+        "tube_rack"
+      ],
+      "preconditions": [
+        "STEP_02"
+      ],
+      "target_zone_name": "rack_zone_a",
+      "min_confidence": 0.75,
+      "stable_duration_ms": 500,
       "timeout_seconds": 45,
       "severity": "critical",
-      "voice_message": "Warning: place the specimen inside the experiment module."
+      "voice_message": "Place the centrifuge tube securely into the tube rack."
+    },
+    {
+      "step_id": "STEP_04",
+      "order": 4,
+      "title": "Release specimen tube",
+      "instruction": "Release your grip on the tube and verify stable placement.",
+      "expected_event": "RELEASE_CANDIDATE",
+      "required_objects": [
+        "centrifuge_tube"
+      ],
+      "preconditions": [
+        "STEP_03"
+      ],
+      "min_confidence": 0.70,
+      "stable_duration_ms": 300,
+      "timeout_seconds": 30,
+      "severity": "warning",
+      "voice_message": "Release the tube and ensure it is stably seated."
     }
   ]
 }
-

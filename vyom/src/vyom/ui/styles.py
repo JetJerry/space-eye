@@ -28,6 +28,7 @@ COLOR_SUCCESS = "#2ea043"      # Operation green
 COLOR_WARNING = "#d29922"      # Alert amber
 COLOR_DANGER = "#f85149"       # Violation red
 COLOR_OFFLINE = "#8957e5"      # Offline purple / secure badge
+COLOR_MUTED = "#65768d"        # Idle / disabled muted grey
 
 
 # ==============================================================================

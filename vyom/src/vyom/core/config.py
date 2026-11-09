@@ -345,11 +345,8 @@ class ConfigManager:
             raise ProtocolError(f"Protocol file not found at: {target_path}")
 
         try:
-            with open(target_path, "r", encoding="utf-8") as f:
-                protocol_data = json.load(f)
-            protocol = ProtocolSchema(**protocol_data)
-            logger.info("Loaded protocol '%s' (v%s) with %d steps", protocol.experiment_name, protocol.protocol_version, len(protocol.steps))
-            return protocol
+            from vyom.protocol.protocol_loader import load_protocol_from_file
+            return load_protocol_from_file(target_path)
         except Exception as e:
             raise ProtocolError(f"Protocol validation failed for {target_path}: {e}") from e
 

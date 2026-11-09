@@ -69,9 +69,9 @@ def test_sample_protocol_loading():
     assert protocol.protocol_id == "sample-specimen-transfer"
     assert len(protocol.steps) >= 2
     assert protocol.steps[0].step_id == "STEP_01"
-    assert protocol.steps[0].expected_event == "OBJECT_PICKED_UP"
+    assert protocol.steps[0].expected_event in ("OBJECT_PICKED_UP", "PICKUP_CANDIDATE")
     assert protocol.steps[1].step_id == "STEP_02"
-    assert protocol.steps[1].expected_event == "OBJECT_PLACED_IN_TARGET"
+    assert protocol.steps[1].expected_event in ("OBJECT_PLACED_IN_TARGET", "OBJECT_MOVEMENT")
 
 
 def test_invalid_device_preference():
