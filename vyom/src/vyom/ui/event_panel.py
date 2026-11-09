@@ -95,6 +95,9 @@ class EventPanel(QFrame):
         self.aruco_status_lbl = QLabel("ArUco: NOT INITIALIZED")
         self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
 
+        self.interaction_status_lbl = QLabel("Interactions: IDLE")
+        self.interaction_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6; font-weight: 600;")
+
         self.fps_status_lbl = QLabel("FPS: -- (0 dropped)")
         self.fps_status_lbl.setStyleSheet("font-size: 11px; color: #65768d;")
 
@@ -102,6 +105,7 @@ class EventPanel(QFrame):
         status_bar.addWidget(self.yolo_status_lbl)
         status_bar.addWidget(self.hands_status_lbl)
         status_bar.addWidget(self.aruco_status_lbl)
+        status_bar.addWidget(self.interaction_status_lbl)
         status_bar.addStretch()
         status_bar.addWidget(self.fps_status_lbl)
 
@@ -220,6 +224,14 @@ class EventPanel(QFrame):
         else:
             self.hands_status_lbl.setText("MediaPipe: NOT INITIALIZED")
             self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
+
+    def set_interaction_status(self, text: str, active: bool = False) -> None:
+        """Update Interaction status label in diagnostics strip."""
+        self.interaction_status_lbl.setText(f"Interactions: {text}")
+        if active:
+            self.interaction_status_lbl.setStyleSheet("font-size: 11px; color: #2ea043; font-weight: 600;")
+        else:
+            self.interaction_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6; font-weight: 600;")
 
     def set_hardware_report(self, report: HardwareReport) -> None:
         """Render the 4-tier hardware status distinguishing physical GPU from execution provider."""

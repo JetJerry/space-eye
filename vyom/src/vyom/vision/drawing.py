@@ -1,6 +1,6 @@
 """Visual overlay rendering utilities for ArUco markers, rig reference frames, and MediaPipe hand tracking."""
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
@@ -10,6 +10,7 @@ from vyom.vision.hand_tracker import (
     HandTrackingResult,
     TrackedHand,
 )
+from vyom.vision.obb_detector import OBBDetection, OBBFrameDetections
 
 # High-contrast mission control overlay colors (BGR format)
 COLOR_MARKER_BORDER = (0, 230, 115)       # Green (BGR: 115, 230, 0)
@@ -253,3 +254,91 @@ def _draw_single_hand(
         cv2.rectangle(frame, (px - 5, py - th - 4), (px + tw + 5, py + baseline + 2), COLOR_TEXT_BG, -1)
         cv2.rectangle(frame, (px - 5, py - th - 4), (px + tw + 5, py + baseline + 2), pill_color, 1)
         cv2.putText(frame, label, (px, py - 1), font, font_scale, COLOR_TEXT_FG, thickness, cv2.LINE_AA)
+
+
+# ==============================================================================
+# YOLOv8-OBB Oriented Object Detection Drawing
+# ==============================================================================
+
+# Distinct high-contrast color palette for all 10 classes (BGR format)
+OBB_CLASS_COLORS: Dict[str, Tuple[int, int, int]] = {
+    "centrifuge_tube": (220, 200, 0),       # Cyan / Aqua
+    "tube_rack": (0, 140, 255),             # Warm Orange / Amber
+    "rack_hole": (255, 120, 160),           # Lavender / Slate Blue
+    "tube_cap": (200, 50, 255),             # Vivid Magenta / Pink
+    "pipette": (0, 230, 180),               # Neon Mint / Spring Green
+    "beaker": (255, 100, 50),               # Bright Royal Blue
+    "conical_flask": (50, 200, 80),         # Emerald / Grass Green
+    "sample_vial": (140, 80, 255),          # Coral Pink (Provisional)
+    "multiwell_plate": (80, 255, 120),      # Acid Lime (Provisional)
+    "rig_slot": (0, 215, 255),              # Gold / Sunflower Yellow (Provisional)
+}
+
+DEFAULT_OBB_COLOR: Tuple[int, int, int] = (0, 230, 115)
+
+
+def draw_obb_overlays(
+    frame_bgr: np.ndarray,
+    obb_result: Optional[OBBFrameDetections],
+    draw_labels: bool = True,
+    draw_centroid: bool = True,
+    alpha_fill: float = 0.16,
+) -> np.ndarray:
+    """Draw oriented bounding box polygons, confidence tags, and centroids onto video frame.
+
+    Coexists seamlessly with ArUco markers and MediaPipe hand tracking overlays.
+    Preserves frame resolution and coordinate alignments.
+    """
+    if obb_result is None or not obb_result.has_detections:
+        return frame_bgr
+
+    annotated = frame_bgr.copy()
+    h, w = annotated.shape[:2]
+
+    # Optional semi-transparent polygon fill layer
+    if alpha_fill > 0.0:
+        overlay = annotated.copy()
+        for det in obb_result.detections:
+            color = OBB_CLASS_COLORS.get(det.class_name, DEFAULT_OBB_COLOR)
+            corners = det.corners_int
+            cv2.fillPoly(overlay, [corners], color)
+        cv2.addWeighted(overlay, alpha_fill, annotated, 1.0 - alpha_fill, 0, annotated)
+
+    # Crisp boundary lines, centroids, and labels
+    for det in obb_result.detections:
+        color = OBB_CLASS_COLORS.get(det.class_name, DEFAULT_OBB_COLOR)
+        corners = det.corners_int
+
+        # 1. Closed Oriented Polygon Boundary
+        cv2.polylines(annotated, [corners], isClosed=True, color=color, thickness=2, lineType=cv2.LINE_AA)
+
+        # 2. Centroid Target
+        if draw_centroid:
+            cx, cy = int(round(det.center[0])), int(round(det.center[1]))
+            if 0 <= cx < w and 0 <= cy < h:
+                cv2.circle(annotated, (cx, cy), 3, color, -1, cv2.LINE_AA)
+                cv2.circle(annotated, (cx, cy), 1, (255, 255, 255), -1, cv2.LINE_AA)
+
+        # 3. Label Pill
+        if draw_labels:
+            prov_tag = "*" if det.is_provisional else ""
+            label = f"{det.class_name}{prov_tag} {det.confidence:.0%}"
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.40
+            thickness = 1
+            (tw, th), baseline = cv2.getTextSize(label, font, font_scale, thickness)
+
+            # Anchor pill near top-most corner to ensure readability
+            top_corner_idx = int(np.argmin(corners[:, 1]))
+            lx = int(np.clip(corners[top_corner_idx, 0] - tw // 2, 4, w - tw - 8))
+            ly = int(corners[top_corner_idx, 1] - 6)
+            if ly - th - 4 < 4:
+                # If too close to top edge, flip below corner
+                ly = int(corners[top_corner_idx, 1] + th + 14)
+
+            cv2.rectangle(annotated, (lx - 4, ly - th - 3), (lx + tw + 4, ly + baseline), COLOR_TEXT_BG, -1)
+            cv2.rectangle(annotated, (lx - 4, ly - th - 3), (lx + tw + 4, ly + baseline), color, 1)
+            cv2.putText(annotated, label, (lx, ly - 1), font, font_scale, COLOR_TEXT_FG, thickness, cv2.LINE_AA)
+
+    return annotated
+

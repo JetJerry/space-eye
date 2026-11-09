@@ -31,13 +31,32 @@ from vyom.ui.settings_dialog import SettingsDialog
 from vyom.ui.styles import APPLICATION_STYLESHEET
 from vyom.ui.top_bar import TopBar
 from vyom.vision.aruco_tracker import ArucoDetectionResult, ArucoTracker, RigTrackingState
-from vyom.vision.drawing import draw_aruco_overlays, draw_hand_overlays
+from vyom.vision.drawing import (
+    draw_aruco_overlays,
+    draw_hand_overlays,
+    draw_obb_overlays,
+)
 from vyom.vision.hand_tracker import (
     HandTrackerConfig,
     HandTrackingResult,
     HandTrackingStatus,
 )
 from vyom.vision.hand_worker import HandTrackingWorker
+from vyom.vision.obb_detector import (
+    OBBDetectorConfig,
+    OBBDetectorStatus,
+    OBBFrameDetections,
+)
+from vyom.vision.obb_worker import OBBTrackingWorker
+from vyom.interaction.drawing import draw_interaction_overlays
+from vyom.interaction.engine import (
+    HandObjectRelationship,
+    InteractionConfig,
+    InteractionFrameResult,
+)
+from vyom.interaction.events import InteractionEvent, InteractionState
+from vyom.interaction.worker import InteractionWorker
+from vyom.vision.observations import PerceptionFrameObservation
 
 logger = get_logger("ui.main_window")
 
@@ -80,6 +99,25 @@ class VyomMainWindow(QMainWindow):
         self._last_logged_hand_count: int = 0
         self._hand_fps_history = collections.deque(maxlen=20)
 
+        # YOLOv8-OBB Oriented Object Detection Subsystem (Off GUI Thread)
+        smoke_model_path = self.config.models.yolo_pt_path or Path("models/vyom_yolov8n_obb_smoke.pt")
+        smoke_meta_path = getattr(self.config.models, "smoke_metadata_path", None) or Path("models/smoke_model_metadata.json")
+        obb_cfg = OBBDetectorConfig(
+            model_path=smoke_model_path,
+            metadata_path=smoke_meta_path,
+            conf_threshold=0.25,
+            iou_threshold=0.45,
+            imgsz=640,
+            device_preference=self.config.inference.device_preference.value,
+            allow_cpu_fallback=self.config.inference.allow_cpu_fallback,
+        )
+        self.obb_worker = OBBTrackingWorker(obb_cfg, self)
+        self._last_logged_obb_count: int = 0
+
+        # Temporal Hand-Object Interaction Recognition Subsystem (Off GUI Thread)
+        self.interaction_worker = InteractionWorker(InteractionConfig(), self)
+        self._last_logged_interaction_state: Optional[str] = None
+
         self._init_ui()
         self._init_data()
         self._connect_signals()
@@ -87,7 +125,7 @@ class VyomMainWindow(QMainWindow):
         # Check for pre-existing downloaded ENIGMA-360 videos for easy 1-click loading
         self._check_initial_dataset_video()
 
-        logger.info("VyomMainWindow initialized with ArUco and MediaPipe hand tracking subsystems")
+        logger.info("VyomMainWindow initialized with ArUco, MediaPipe, YOLOv8-OBB, and Interaction subsystems")
 
     def _init_ui(self) -> None:
         """Construct the mission control desktop layout."""
@@ -183,6 +221,40 @@ class VyomMainWindow(QMainWindow):
                     hash_digest="mediapipe:init_warning",
                 )
 
+        # Initialize YOLOv8-OBB Object Detection worker
+        obb_ok, obb_status, obb_msg = self.obb_worker.initialize()
+        if obb_ok:
+            cnames = list(self.obb_worker.detector.class_names.values())
+            self.live_monitor.set_yolo_status(
+                status=obb_status,
+                device=self.obb_worker.active_device,
+                class_names=cnames,
+            )
+            self.obb_worker.start()
+            logger.info("YOLOv8-OBB OBBTrackingWorker initialized and background thread started")
+            self.event_panel.add_event(
+                severity="INFO",
+                source="YOLO_OBB",
+                description=f"Model loaded on {self.obb_worker.active_device.upper()} ({len(cnames)} classes: {', '.join(cnames[:4])}...)",
+                hash_digest="yolo_obb:init_ok",
+            )
+        else:
+            self.live_monitor.set_yolo_status(
+                status=obb_status,
+                device=self.obb_worker.active_device,
+            )
+            self.event_panel.add_event(
+                severity="WARNING" if "MISSING" in obb_status.value else "ERROR",
+                source="YOLO_OBB",
+                description=obb_msg,
+                hash_digest="yolo_obb:init_err",
+            )
+
+        # Start Interaction Recognition worker
+        self.interaction_worker.start()
+        logger.info("InteractionWorker background thread started")
+        self.live_monitor.set_interaction_badge("INTERACTION: IDLE")
+
     def _check_initial_dataset_video(self) -> None:
         """Pre-populate file selector with first available ENIGMA-360 exocentric video if present."""
         enigma_dir = self.config.datasets.enigma360_path
@@ -208,6 +280,13 @@ class VyomMainWindow(QMainWindow):
         # Wire MediaPipe Hand Tracking Worker output
         self.hand_worker.hand_result_ready.connect(self._on_hand_result_ready)
 
+        # Wire YOLOv8-OBB Object Detection Worker output
+        self.obb_worker.obb_result_ready.connect(self._on_obb_result_ready)
+
+        # Wire Temporal Interaction Recognition Worker outputs
+        self.interaction_worker.interaction_result_ready.connect(self._on_interaction_result_ready)
+        self.interaction_worker.interaction_event_emitted.connect(self._on_interaction_event_emitted)
+
     # ==========================================================================
     # Background Vision Processing Pipeline (Off GUI Thread)
     # ==========================================================================
@@ -218,17 +297,23 @@ class VyomMainWindow(QMainWindow):
         timestamp_s: float,
         frame_idx: int,
     ) -> Tuple[np.ndarray, Any]:
-        """Runs inside CaptureWorker QThread to process frame and render ArUco and Hand overlays."""
+        """Runs inside CaptureWorker QThread to process frame and render ArUco, Hand, YOLO, and Interaction overlays."""
         # 1. Asynchronously submit frame to HandTrackingWorker (non-blocking latest-frame queue)
         self.hand_worker.submit_frame(frame_bgr, timestamp_s, frame_idx)
 
-        # 2. Detect ArUco fiducials and compute rig reference
+        # 2. Asynchronously submit frame to OBBTrackingWorker (non-blocking latest-frame queue)
+        self.obb_worker.submit_frame(frame_bgr, timestamp_s, frame_idx)
+
+        # 3. Detect ArUco fiducials and compute rig reference
         detection_result = self.aruco_tracker.detect(frame_bgr, timestamp_s)
 
-        # 3. Retrieve freshest non-stale hand tracking result (<= 200ms latency)
+        # 4. Retrieve freshest non-stale hand tracking result (<= 200ms latency)
         hand_result = self.hand_worker.get_latest_result(max_age_s=0.200)
 
-        # 4. Draw ArUco fiducials and 3D axes (if calibrated) onto preview frame
+        # 5. Retrieve freshest non-stale OBB detection result (<= 250ms latency)
+        obb_result = self.obb_worker.get_latest_result(max_age_s=0.250)
+
+        # 6. Draw ArUco fiducials and 3D axes (if calibrated) onto preview frame
         calib = self.aruco_tracker.rig_coords.calibration if self.aruco_tracker.rig_coords.is_calibrated else None
         cam_mtx = calib.camera_matrix if calib else None
         dist_coef = calib.dist_coeffs if calib else None
@@ -241,7 +326,7 @@ class VyomMainWindow(QMainWindow):
             axis_length_m=self.aruco_tracker.marker_size_m * 0.8,
         )
 
-        # 5. Draw Hand Landmark overlays (coexists with ArUco overlays)
+        # 7. Draw Hand Landmark overlays (coexists with ArUco overlays)
         if hand_result is not None and hand_result.has_hands:
             annotated_bgr = draw_hand_overlays(
                 annotated_bgr,
@@ -251,7 +336,41 @@ class VyomMainWindow(QMainWindow):
                 draw_handedness_pill=True,
             )
 
-        return annotated_bgr, (detection_result, hand_result)
+        # 8. Draw YOLOv8-OBB Oriented Bounding Box Overlays (coexists with ArUco and Hand overlays)
+        if obb_result is not None and obb_result.has_detections:
+            annotated_bgr = draw_obb_overlays(
+                annotated_bgr,
+                obb_result,
+                draw_labels=True,
+                draw_centroid=True,
+                alpha_fill=0.16,
+            )
+
+        # Unified Perception Frame Observation
+        frame_obs = PerceptionFrameObservation(
+            frame_id=frame_idx,
+            timestamp_s=timestamp_s,
+            aruco_result=detection_result,
+            hand_result=hand_result,
+            obb_result=obb_result,
+        )
+
+        # 9. Asynchronously submit observation to InteractionWorker
+        self.interaction_worker.submit_observation(frame_obs)
+
+        # 10. Retrieve freshest non-stale interaction result (<= 250ms latency)
+        interaction_res = self.interaction_worker.get_latest_result(max_age_s=0.250)
+
+        # 11. Draw Interaction Overlays (coexists with all perception overlays)
+        if interaction_res is not None:
+            annotated_bgr = draw_interaction_overlays(
+                annotated_bgr,
+                interaction_res,
+                draw_connecting_lines=True,
+                draw_badges=True,
+            )
+
+        return annotated_bgr, (frame_obs, interaction_res)
 
     # ==========================================================================
     # Video Capture Worker Management
@@ -348,7 +467,9 @@ class VyomMainWindow(QMainWindow):
     def _on_vision_result_ready(self, result: object) -> None:
         """Handle perception detection result emitted from background worker."""
         aruco_res = None
-        if isinstance(result, tuple) and len(result) >= 1:
+        if isinstance(result, PerceptionFrameObservation):
+            aruco_res = result.aruco_result
+        elif isinstance(result, tuple) and len(result) >= 1:
             aruco_res = result[0]
         elif isinstance(result, ArucoDetectionResult):
             aruco_res = result
@@ -437,6 +558,85 @@ class VyomMainWindow(QMainWindow):
                     description="Hand(s) exited camera view.",
                     hash_digest="hand:cleared",
                 )
+
+    @Slot(object)
+    def _on_obb_result_ready(self, result: object) -> None:
+        """Handle YOLOv8-OBB detection result emitted from background OBBTrackingWorker."""
+        if not isinstance(result, OBBFrameDetections):
+            return
+
+        fps = self.obb_worker.measured_fps
+        cnames = list(self.obb_worker.detector.class_names.values())
+
+        # 1. Update Live Monitor YOLO overlay badge
+        self.live_monitor.set_yolo_status(
+            status=self.obb_worker.detector.status,
+            detection_count=result.count,
+            device=result.device_used,
+            latency_ms=result.inference_time_ms,
+            fps=fps,
+            class_names=cnames,
+        )
+
+        # 2. Log significant detection state transitions to Event Panel
+        if result.count > 0 and self._last_logged_obb_count == 0:
+            det_summary = [f"{d.class_name} ({d.confidence:.0%})" for d in result.detections[:3]]
+            self.event_panel.add_event(
+                severity="INFO",
+                source="YOLO_OBB",
+                description=f"Objects detected ({result.count}): {', '.join(det_summary)}",
+                hash_digest="yolo_obb:detected",
+            )
+        elif result.count == 0 and self._last_logged_obb_count > 0:
+            self.event_panel.add_event(
+                severity="INFO",
+                source="YOLO_OBB",
+                description="Objects no longer in camera view.",
+                hash_digest="yolo_obb:cleared",
+            )
+        self._last_logged_obb_count = result.count
+
+    @Slot(object)
+    def _on_interaction_result_ready(self, result: object) -> None:
+        """Handle interaction frame recognition result emitted from background InteractionWorker."""
+        if not isinstance(result, InteractionFrameResult):
+            return
+
+        # 1. Update LiveMonitor interaction badge
+        active_cnt = len(result.active_contacts)
+        if active_cnt > 0:
+            rel = result.active_contacts[0]
+            txt = f"{rel.handedness} -> {rel.object_track_id} [{rel.current_state.value}]"
+            color = "#2ea043" if "CONTACT" in rel.current_state.value else "#d29922"
+            self.live_monitor.set_interaction_badge(txt, color=color)
+            self.event_panel.set_interaction_status(f"{txt} ({result.processing_time_ms:.1f}ms)", active=True)
+        elif len(result.active_relationships) > 0:
+            rel = result.active_relationships[0]
+            txt = f"{rel.handedness} -> {rel.object_track_id} [{rel.current_state.value}]"
+            self.live_monitor.set_interaction_badge(txt, color="#2f81f7")
+            self.event_panel.set_interaction_status(f"{txt} ({result.processing_time_ms:.1f}ms)", active=False)
+        else:
+            self.live_monitor.set_interaction_badge("INTERACTION: IDLE", color="#65768d")
+            self.event_panel.set_interaction_status(f"IDLE ({len(result.tracked_objects)} tracked objs)", active=False)
+
+    @Slot(object)
+    def _on_interaction_event_emitted(self, event: object) -> None:
+        """Handle discrete temporal interaction event and append to audit timeline."""
+        if not isinstance(event, InteractionEvent):
+            return
+
+        severity = "INFO"
+        if event.event_type in (InteractionEventType.PICKUP_CANDIDATE, InteractionEventType.PLACEMENT_CANDIDATE):
+            severity = "NOTICE"
+        elif event.event_type == InteractionEventType.CONTACT_CANDIDATE:
+            severity = "INFO"
+
+        self.event_panel.add_event(
+            severity=severity,
+            source="INTERACTION",
+            description=event.summary_line(),
+            hash_digest=event.event_id,
+        )
 
     @Slot(str, int, int, float)
     def _on_source_opened(self, source_name: str, width: int, height: int, fps: float) -> None:
@@ -538,14 +738,23 @@ class VyomMainWindow(QMainWindow):
         if hasattr(self, "hand_worker") and self.hand_worker is not None:
             self.hand_worker.reset()
 
+        if hasattr(self, "obb_worker") and self.obb_worker is not None:
+            self.obb_worker.reset()
+
+        if hasattr(self, "interaction_worker") and self.interaction_worker is not None:
+            self.interaction_worker.reset()
+
         self._last_logged_hand_count = 0
+        self._last_logged_obb_count = 0
         self._session_state = "IDLE"
         self.session_panel.set_session_state("IDLE")
         self.top_bar.set_session_status("IDLE")
         self.live_monitor.set_recording_status(False)
         self.live_monitor.set_camera_status(False, self._get_current_source_info())
         self.live_monitor.set_hand_tracking_status(HandTrackingStatus.SEARCHING)
+        self.live_monitor.set_interaction_badge("INTERACTION: IDLE")
         self.event_panel.set_subsystem_statuses(camera_connected=False)
+        self.event_panel.set_interaction_status("IDLE", active=False)
 
     @Slot()
     def _handle_reset_session(self) -> None:
@@ -616,5 +825,13 @@ class VyomMainWindow(QMainWindow):
         if hasattr(self, "hand_worker") and self.hand_worker is not None:
             logger.info("Stopping hand tracking worker during application shutdown")
             self.hand_worker.stop()
+
+        if hasattr(self, "obb_worker") and self.obb_worker is not None:
+            logger.info("Stopping YOLOv8-OBB detection worker during application shutdown")
+            self.obb_worker.stop()
+
+        if hasattr(self, "interaction_worker") and self.interaction_worker is not None:
+            logger.info("Stopping interaction worker during application shutdown")
+            self.interaction_worker.stop()
 
         event.accept()

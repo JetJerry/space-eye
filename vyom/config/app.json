@@ -16,8 +16,9 @@
   "models": {
     "models_dir": "models",
     "object_detector_path": "models/object_detector.onnx",
-    "yolo_pt_path": "models/yolov8_obb_best.pt",
+    "yolo_pt_path": "models/vyom_yolov8n_obb_smoke.pt",
     "hand_landmarker_path": "models/hand_landmarker.task",
+    "smoke_metadata_path": "models/smoke_model_metadata.json",
     "verify_checksums": true
   },
   "datasets": {

@@ -55,8 +55,9 @@ class ModelPathsConfig(BaseModel):
     """Configuration of local offline model asset paths."""
     models_dir: Path = Field(default=Path("models"))
     object_detector_path: Optional[Path] = Field(default=Path("models/object_detector.onnx"))
-    yolo_pt_path: Optional[Path] = Field(default=Path("models/yolov8_obb.pt"))
+    yolo_pt_path: Optional[Path] = Field(default=Path("models/vyom_yolov8n_obb_smoke.pt"))
     hand_landmarker_path: Optional[Path] = Field(default=Path("models/hand_landmarker.task"))
+    smoke_metadata_path: Optional[Path] = Field(default=Path("models/smoke_model_metadata.json"))
     verify_checksums: bool = True
 
 

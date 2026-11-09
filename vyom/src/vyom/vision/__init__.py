@@ -12,8 +12,10 @@ from vyom.vision.calibration import (
     RigCoordinateSystem,
 )
 from vyom.vision.drawing import (
+    OBB_CLASS_COLORS,
     draw_aruco_overlays,
     draw_hand_overlays,
+    draw_obb_overlays,
 )
 from vyom.vision.hand_tracker import (
     HAND_CONNECTIONS,
@@ -26,6 +28,21 @@ from vyom.vision.hand_tracker import (
     TrackedHand,
 )
 from vyom.vision.hand_worker import HandTrackingWorker
+from vyom.vision.obb_detector import (
+    FINAL_CLASSES,
+    OBBDetectorConfig,
+    OBBDetectorStatus,
+    OBBDetection,
+    OBBFrameDetections,
+    PROVISIONAL_SYNTHETIC_CLASSES,
+    REAL_WORLD_CLASSES,
+    YOLOOBBDetector,
+)
+from vyom.vision.obb_worker import OBBTrackingWorker
+from vyom.vision.observations import (
+    ObjectObservation,
+    PerceptionFrameObservation,
+)
 
 __all__ = [
     "ArucoDetectionResult",
@@ -33,6 +50,7 @@ __all__ = [
     "CameraCalibration",
     "CheckerboardCalibrator",
     "DetectedMarker",
+    "FINAL_CLASSES",
     "HAND_CONNECTIONS",
     "HandLandmark",
     "HandLandmarkIndex",
@@ -41,9 +59,21 @@ __all__ = [
     "HandTrackingResult",
     "HandTrackingStatus",
     "HandTrackingWorker",
+    "OBBDetectorConfig",
+    "OBBDetectorStatus",
+    "OBBDetection",
+    "OBBFrameDetections",
+    "OBBTrackingWorker",
+    "OBB_CLASS_COLORS",
+    "ObjectObservation",
+    "PerceptionFrameObservation",
+    "PROVISIONAL_SYNTHETIC_CLASSES",
+    "REAL_WORLD_CLASSES",
     "RigCoordinateSystem",
     "RigTrackingState",
     "TrackedHand",
+    "YOLOOBBDetector",
     "draw_aruco_overlays",
     "draw_hand_overlays",
+    "draw_obb_overlays",
 ]

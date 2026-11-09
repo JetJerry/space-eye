@@ -27,6 +27,7 @@ from vyom.ui.styles import (
 )
 from vyom.vision.aruco_tracker import RigTrackingState
 from vyom.vision.hand_tracker import HandTrackingResult, HandTrackingStatus
+from vyom.vision.obb_detector import OBBDetectorStatus
 
 
 class VideoViewport(QWidget):
@@ -157,6 +158,7 @@ class LiveMonitor(QFrame):
         self.yolo_overlay_badge = StatusBadge("YOLO-OBB: NOT CONFIGURED", color=COLOR_WARNING)
         self.mediapipe_overlay_badge = StatusBadge("HANDS: NOT LOADED", color=COLOR_WARNING)
         self.aruco_overlay_badge = StatusBadge("ARUCO: NOT INITIALIZED", color="#65768d")
+        self.interaction_overlay_badge = StatusBadge("INTERACTION: IDLE", color="#65768d")
 
         self.frame_counter_label = QLabel("Frame: 0 | Monotonic: 0.000s")
         self.frame_counter_label.setStyleSheet("font-size: 11px; color: #65768d; font-family: monospace;")
@@ -164,6 +166,7 @@ class LiveMonitor(QFrame):
         overlay_strip.addWidget(self.yolo_overlay_badge)
         overlay_strip.addWidget(self.mediapipe_overlay_badge)
         overlay_strip.addWidget(self.aruco_overlay_badge)
+        overlay_strip.addWidget(self.interaction_overlay_badge)
         overlay_strip.addStretch()
         overlay_strip.addWidget(self.frame_counter_label)
 
@@ -222,6 +225,52 @@ class LiveMonitor(QFrame):
         else:
             self.aruco_overlay_badge.set_badge_color("#65768d", "ARUCO: NOT INITIALIZED")
 
+    def set_yolo_status(
+        self,
+        status: OBBDetectorStatus | str,
+        detection_count: int = 0,
+        device: str = "GPU",
+        latency_ms: float = 0.0,
+        fps: float = 0.0,
+        class_names: Optional[List[str]] = None,
+    ) -> None:
+        """Update YOLOv8-OBB badge according to Prompt 7 status requirements."""
+        status_val = status.value if isinstance(status, OBBDetectorStatus) else str(status)
+        dev_tag = device.upper()
+
+        # Update available class names in tooltip
+        if class_names:
+            tooltip_txt = f"Active Device: {dev_tag}\nAvailable Classes ({len(class_names)}):\n" + ", ".join(class_names)
+            self.yolo_overlay_badge.setToolTip(tooltip_txt)
+
+        if "MODEL MISSING" in status_val:
+            self.yolo_overlay_badge.set_badge_color(COLOR_DANGER, "YOLO: MODEL MISSING")
+        elif "LOADING" in status_val:
+            self.yolo_overlay_badge.set_badge_color(COLOR_WARNING, f"YOLO: LOADING ({dev_tag})")
+        elif "ERROR" in status_val:
+            self.yolo_overlay_badge.set_badge_color(COLOR_DANGER, "YOLO: ERROR")
+        elif "INFERENCE ACTIVE" in status_val or detection_count > 0:
+            txt = f"YOLO: {detection_count} DETECTED ({dev_tag})"
+            if latency_ms > 0:
+                txt += f" | {latency_ms:.1f}ms"
+            if fps > 0:
+                txt += f" | {fps:.0f} FPS"
+            self.yolo_overlay_badge.set_badge_color(COLOR_SUCCESS, txt)
+        elif "NO OBJECTS DETECTED" in status_val:
+            txt = f"YOLO: NO OBJECTS ({dev_tag})"
+            if latency_ms > 0:
+                txt += f" | {latency_ms:.1f}ms"
+            if fps > 0:
+                txt += f" | {fps:.0f} FPS"
+            self.yolo_overlay_badge.set_badge_color(COLOR_ACCENT, txt)
+        elif "READY" in status_val:
+            self.yolo_overlay_badge.set_badge_color(COLOR_ACCENT, f"YOLO: READY ({dev_tag})")
+        else:
+            self.yolo_overlay_badge.set_badge_color("#65768d", status_val)
+
+        if latency_ms > 0:
+            self.latency_label.setText(f"Inference: {latency_ms:.1f} ms")
+
     def set_hand_tracking_status(
         self,
         status: HandTrackingStatus | str,
@@ -258,6 +307,10 @@ class LiveMonitor(QFrame):
 
         if latency_ms > 0:
             self.latency_label.setText(f"Vision Latency: {latency_ms:.1f} ms")
+
+    def set_interaction_badge(self, text: str, color: str = "#65768d") -> None:
+        """Update bottom interaction status badge."""
+        self.interaction_overlay_badge.set_badge_color(color, text)
 
     def update_frame_qimage(self, qimg: QImage, frame_idx: int = 0, timestamp_s: float = 0.0) -> None:
         """Display newly acquired frame from QImage."""
