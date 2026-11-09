@@ -78,6 +78,10 @@ class TopBar(QFrame):
         self.compute_badge = StatusBadge("COMPUTE: DETECTING...", color=COLOR_ACCENT)
         layout.addWidget(self.compute_badge)
 
+        # 4. Voice Alert Status Badge (Prompt 10)
+        self.voice_badge = StatusBadge("VOICE: READY", color=COLOR_SUCCESS)
+        layout.addWidget(self.voice_badge)
+
         # Settings Button
         self.settings_btn = QPushButton("⚙ Settings")
         self.settings_btn.setCursor(Qt.PointingHandCursor)
@@ -99,4 +103,19 @@ class TopBar(QFrame):
         color = COLOR_SUCCESS if device == "GPU" else COLOR_ACCENT
         self.compute_badge.set_badge_color(color, f"COMPUTE: {device}")
         self.compute_badge.setToolTip(detail)
+
+    def set_voice_status(self, status: str, color: str | None = None) -> None:
+        """Update offline speech synthesis badge status."""
+        status_upper = status.upper()
+        if color:
+            badge_color = color
+        elif "SPEAKING" in status_upper:
+            badge_color = COLOR_ACCENT
+        elif "MUTED" in status_upper:
+            badge_color = COLOR_WARNING
+        elif "UNAVAILABLE" in status_upper or "ERROR" in status_upper:
+            badge_color = COLOR_DANGER
+        else:
+            badge_color = COLOR_SUCCESS
+        self.voice_badge.set_badge_color(badge_color, status_upper)
 

@@ -3,7 +3,7 @@
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class InferenceDevice(str, Enum):
@@ -159,6 +159,59 @@ class ProtocolSchema(BaseModel):
     steps: List[ProtocolStepSchema] = Field(default_factory=list)
 
 
+class VoiceAlertConfig(BaseModel):
+    """Runtime configuration for offline voice guidance and compliance alarms."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    enabled: bool = Field(default=True, description="Master enable/mute switch for voice synthesis")
+    voice_id: Optional[str] = Field(
+        default=None,
+        description="Explicit SAPI5 voice token ID. If None, auto-selects default Windows voice.",
+    )
+    rate: int = Field(
+        default=175,
+        ge=100,
+        le=300,
+        description="Speech rate in words per minute (WPM)",
+    )
+    volume: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Speech output volume level from 0.0 (silent) to 1.0 (maximum)",
+    )
+    alert_cooldown_seconds: float = Field(
+        default=3.0,
+        ge=0.5,
+        description="Minimum cooldown period in seconds before repeating identical violation speech",
+    )
+    max_queue_size: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum bounded capacity of the priority speech queue to avoid backlog",
+    )
+    max_queue_age_s: float = Field(
+        default=6.0,
+        ge=1.0,
+        description="Maximum allowed queue residency time before a stale message is discarded",
+    )
+    allow_interruptions: bool = Field(
+        default=True,
+        description="Whether high-priority alarms (e.g. OUT_OF_ORDER) can interrupt ongoing low-priority speech",
+    )
+    enabled_categories: Dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-category enable flags (e.g. {'LOW_CONFIDENCE_WARNING': False})",
+    )
+
+    def is_category_enabled(self, category_name: str) -> bool:
+        """Check if a specific alert category is enabled for voice playback."""
+        if not self.enabled:
+            return False
+        return self.enabled_categories.get(category_name, True)
+
+
 class VyomConfig(BaseModel):
     """Complete root application configuration for VYOM."""
     app_name: str = "VYOM"
@@ -174,6 +227,7 @@ class VyomConfig(BaseModel):
     rig: RigConfig = Field(default_factory=RigConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
+    voice_alerts: VoiceAlertConfig = Field(default_factory=VoiceAlertConfig)
 
     protocols_dir: Path = Field(default=Path("config/protocols"))
     default_protocol: str = "sample_experiment.json"

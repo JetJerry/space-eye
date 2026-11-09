@@ -48,6 +48,7 @@ from vyom.vision.obb_detector import (
     OBBFrameDetections,
 )
 from vyom.vision.obb_worker import OBBTrackingWorker
+from vyom.alerts import AlertManager, VoiceAlertConfig, VoiceAlertItem
 from vyom.interaction.drawing import draw_interaction_overlays
 from vyom.interaction.engine import (
     HandObjectRelationship,
@@ -121,6 +122,11 @@ class VyomMainWindow(QMainWindow):
 
         # Deterministic Procedure Validation & Compliance Engine (Prompt 9)
         self.procedure_engine = ProcedureEngine()
+
+        # Offline Voice Alerts & Experiment Guidance System (Prompt 10)
+        voice_cfg = getattr(self.config, "voice_alerts", VoiceAlertConfig())
+        self.alert_manager = AlertManager(voice_cfg, self)
+        self.alert_manager.start()
 
         self._init_ui()
         self._init_data()
@@ -293,6 +299,14 @@ class VyomMainWindow(QMainWindow):
         self.interaction_worker.interaction_result_ready.connect(self._on_interaction_result_ready)
         self.interaction_worker.interaction_event_emitted.connect(self._on_interaction_event_emitted)
 
+        # Wire Offline Voice Alert Manager signals (Prompt 10)
+        self.alert_manager.voice_status_changed.connect(self._on_voice_status_changed)
+        self.alert_manager.voice_alert_queued.connect(self._on_voice_alert_queued)
+        self.alert_manager.voice_speech_started.connect(self._on_voice_speech_started)
+        self.alert_manager.voice_speech_finished.connect(self._on_voice_speech_finished)
+        self.alert_manager.voice_speech_error.connect(self._on_voice_speech_error)
+        self.alert_manager.voice_alert_dropped.connect(self._on_voice_alert_dropped)
+
     # ==========================================================================
     # Background Vision Processing Pipeline (Off GUI Thread)
     # ==========================================================================
@@ -462,9 +476,12 @@ class VyomMainWindow(QMainWindow):
         self.top_bar.set_session_status("ACTIVE")
         self.live_monitor.set_camera_status(True, source.get_metadata().source_label)
 
-        # Start procedure compliance monitoring
+        # Start procedure compliance monitoring and voice guidance (Prompt 10)
         eval_res = self.procedure_engine.start()
         self.protocol_panel.update_evaluation_result(eval_res)
+        proto_name = self.procedure_engine.protocol.experiment_name if self.procedure_engine.protocol else "Experiment"
+        self.alert_manager.on_session_started(proto_name)
+        self.alert_manager.process_procedure_result(eval_res, self.procedure_engine.protocol)
 
         self._capture_worker.start()
 
@@ -681,6 +698,9 @@ class VyomMainWindow(QMainWindow):
                 hash_digest=violation.violation_id,
             )
 
+        # Prompt 10: Dispatch spoken guidance and prioritized offline audio alerts
+        self.alert_manager.process_procedure_result(eval_res, self.procedure_engine.protocol)
+
     @Slot(str, int, int, float)
     def _on_source_opened(self, source_name: str, width: int, height: int, fps: float) -> None:
         self.live_monitor.set_source_info(source_name, width, height, fps)
@@ -791,6 +811,8 @@ class VyomMainWindow(QMainWindow):
 
         self.procedure_engine.stop()
         self.protocol_panel.update_evaluation_result(self.procedure_engine.get_state())
+        if hasattr(self, "alert_manager") and self.alert_manager is not None:
+            self.alert_manager.on_session_aborted()
 
         self._last_logged_hand_count = 0
         self._last_logged_obb_count = 0
@@ -808,6 +830,8 @@ class VyomMainWindow(QMainWindow):
     def _handle_reset_session(self) -> None:
         self._handle_stop_session()
         self.procedure_engine.reset()
+        if hasattr(self, "alert_manager") and self.alert_manager is not None:
+            self.alert_manager.reset_announcement_state()
         self.protocol_panel.update_evaluation_result(self.procedure_engine.get_state())
         self.event_panel.clear_timeline()
         self.event_panel.add_event(
@@ -860,14 +884,71 @@ class VyomMainWindow(QMainWindow):
 
     @Slot()
     def _open_settings_dialog(self) -> None:
-        dialog = SettingsDialog(self.config_manager, self)
+        dialog = SettingsDialog(self.config_manager, self, alert_manager=self.alert_manager)
         if dialog.exec():
             hw_report = self.config_manager.get_hardware_report()
             self.top_bar.set_compute_status(hw_report.active_device_selected, hw_report.device_selection_reason)
             self.event_panel.set_hardware_report(hw_report)
 
+    # -------------------------------------------------------------------------
+    # Offline Voice Alert Listeners (Prompt 10)
+    # -------------------------------------------------------------------------
+
+    @Slot(str, str)
+    def _on_voice_status_changed(self, status_val: str, status_text: str) -> None:
+        self.top_bar.set_voice_status(status_text)
+
+    @Slot(object)
+    def _on_voice_alert_queued(self, item: VoiceAlertItem) -> None:
+        self.event_panel.add_event(
+            severity="INFO",
+            source="VOICE",
+            description=f"Alert queued: '{item.text}' (priority={item.priority_rank})",
+            hash_digest=item.alert_id,
+        )
+
+    @Slot(object)
+    def _on_voice_speech_started(self, item: VoiceAlertItem) -> None:
+        self.event_panel.add_event(
+            severity="NOTICE",
+            source="VOICE",
+            description=f"Speaking alert: '{item.text}'",
+            hash_digest=item.alert_id,
+        )
+
+    @Slot(object)
+    def _on_voice_speech_finished(self, item: VoiceAlertItem) -> None:
+        self.event_panel.add_event(
+            severity="SUCCESS",
+            source="VOICE",
+            description=f"Alert spoken: '{item.text}'",
+            hash_digest=item.alert_id,
+        )
+
+    @Slot(object, str)
+    def _on_voice_speech_error(self, item: VoiceAlertItem, err: str) -> None:
+        self.event_panel.add_event(
+            severity="CRITICAL",
+            source="VOICE",
+            description=f"Alert failed: '{item.text}' (error: {err})",
+            hash_digest=item.alert_id,
+        )
+
+    @Slot(object, str)
+    def _on_voice_alert_dropped(self, item: VoiceAlertItem, reason: str) -> None:
+        self.event_panel.add_event(
+            severity="INFO",
+            source="VOICE",
+            description=f"Alert dropped: '{item.text}' ({reason})",
+            hash_digest=item.alert_id,
+        )
+
     def closeEvent(self, event: QCloseEvent) -> None:
         """Ensure capture worker thread, hand tracking worker, and recording are stopped cleanly."""
+        if hasattr(self, "alert_manager") and self.alert_manager is not None:
+            logger.info("Stopping alert manager during application shutdown")
+            self.alert_manager.stop()
+
         if self._capture_worker is not None:
             logger.info("Stopping capture worker during application shutdown")
             self._capture_worker.stop_capture()
