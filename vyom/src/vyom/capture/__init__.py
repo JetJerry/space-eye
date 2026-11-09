@@ -1,9 +1,18 @@
-"""Video acquisition and local recording package.
+"""Video acquisition and local recording package using OpenCV."""
 
-Planned components (Prompt 3):
-- frame_source.py: Abstract base class for frame acquisition.
-- camera_source.py: OpenCV VideoCapture wrapper running in a worker thread.
-- video_file_source.py: Local video replay with monotonic timestamps.
-- recorder.py: Thread-safe VideoWriter for local session archiving.
-"""
+from vyom.capture.camera_source import CameraSource
+from vyom.capture.capture_worker import CaptureWorker
+from vyom.capture.frame_source import FrameSource, SourceMetadata
+from vyom.capture.network_source import NetworkSource
+from vyom.capture.recorder import SessionRecorder
+from vyom.capture.video_file_source import VideoFileSource
 
+__all__ = [
+    "CameraSource",
+    "CaptureWorker",
+    "FrameSource",
+    "NetworkSource",
+    "SessionRecorder",
+    "SourceMetadata",
+    "VideoFileSource",
+]

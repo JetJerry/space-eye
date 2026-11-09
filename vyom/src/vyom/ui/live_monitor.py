@@ -1,7 +1,7 @@
-"""Live monitor component for camera feed and perception overlays."""
+"""Live monitor component displaying real-time video frames and perception overlays."""
 
 from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QColor, QFont, QPaintEvent, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QImage, QPaintEvent, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -63,6 +63,8 @@ class VideoViewport(QWidget):
             )
             x = (w - scaled.width()) // 2
             y = (h - scaled.height()) // 2
+            # Clear border area with deep dark fill
+            painter.fillRect(0, 0, w, h, QColor("#040609"))
             painter.drawPixmap(x, y, scaled)
             return
 
@@ -122,8 +124,11 @@ class LiveMonitor(QFrame):
 
         # Top Header Bar inside monitor
         top_bar = QHBoxLayout()
-        self.source_label = QLabel("Source: [Device 0] USB Camera (1280x720)")
+        self.source_label = QLabel("Source: [Device 0] Camera (1280x720)")
         self.source_label.setStyleSheet("font-size: 11px; font-weight: 600; color: #8fa1b6;")
+
+        self.recording_badge = StatusBadge("● REC", color=COLOR_DANGER)
+        self.recording_badge.setVisible(False)
 
         self.fps_badge = StatusBadge("-- FPS", color=COLOR_ACCENT)
         self.latency_label = QLabel("Latency: -- ms")
@@ -131,6 +136,7 @@ class LiveMonitor(QFrame):
 
         top_bar.addWidget(self.source_label)
         top_bar.addStretch()
+        top_bar.addWidget(self.recording_badge)
         top_bar.addWidget(self.latency_label)
         top_bar.addWidget(self.fps_badge)
         layout.addLayout(top_bar)
@@ -164,16 +170,32 @@ class LiveMonitor(QFrame):
         self.source_label.setText(f"Source: {source_info}")
         if connected:
             self.viewport.set_status_message(
-                "CAMERA CONNECTED",
-                "Acquiring video stream...",
+                "CONNECTING TO VIDEO SOURCE...",
+                "Waiting for initial frame...",
             )
         else:
+            self.viewport.set_pixmap(None)
             self.viewport.set_status_message(
                 "CAMERA NOT CONNECTED",
                 "Select a video source and click 'Start Session' to begin frame acquisition.",
             )
+            self.fps_badge.setText("-- FPS")
+            self.latency_label.setText("Latency: -- ms")
 
-    def update_frame(self, pixmap: QPixmap, frame_idx: int = 0, timestamp_s: float = 0.0) -> None:
-        """Display newly acquired frame."""
+    def set_source_info(self, label: str, width: int, height: int, fps: float) -> None:
+        """Update header with negotiated stream resolution and FPS."""
+        self.source_label.setText(f"Source: {label} ({width}x{height} @ {fps:.1f} FPS)")
+
+    def set_measured_fps(self, fps: float) -> None:
+        """Update measured FPS badge."""
+        self.fps_badge.setText(f"{fps:.1f} FPS")
+
+    def set_recording_status(self, recording: bool) -> None:
+        """Toggle recording badge visibility."""
+        self.recording_badge.setVisible(recording)
+
+    def update_frame_qimage(self, qimg: QImage, frame_idx: int = 0, timestamp_s: float = 0.0) -> None:
+        """Display newly acquired frame from QImage."""
+        pixmap = QPixmap.fromImage(qimg)
         self.viewport.set_pixmap(pixmap)
         self.frame_counter_label.setText(f"Frame: {frame_idx} | Monotonic: {timestamp_s:.3f}s")

@@ -1,4 +1,4 @@
-"""Left-side session controls and video source management panel."""
+"""Left-side session controls, video source selector, and file metadata display."""
 
 from pathlib import Path
 from PySide6.QtCore import Signal, Qt
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vyom.capture.video_file_source import VideoFileSource
 from vyom.ui.styles import (
     BG_CARD,
     BORDER_SUBTLE,
@@ -42,12 +43,15 @@ class SessionPanel(QFrame):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("panelFrame")
-        self.setMinimumWidth(260)
-        self.setMaximumWidth(320)
+        self.setMinimumWidth(270)
+        self.setMaximumWidth(330)
+
+        self._selected_video_file: Path | None = None
+        self._default_dataset_dir = Path("D:/space_eye/datasets/ENIGMA-360")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(14)
+        layout.setSpacing(12)
 
         # 1. Video Source Selection Group
         source_group = QGroupBox("Camera / Video Source")
@@ -55,7 +59,11 @@ class SessionPanel(QFrame):
         source_layout.setSpacing(8)
 
         self.source_type_combo = QComboBox()
-        self.source_type_combo.addItems(["Webcam (Device Index)", "Local Video File", "Network Stream (RTSP)"])
+        self.source_type_combo.addItems([
+            "Webcam (Device Index)",
+            "Local Video File (MP4/AVI)",
+            "Network Stream (RTSP)",
+        ])
         self.source_type_combo.currentIndexChanged.connect(self._on_source_type_changed)
         source_layout.addWidget(self.source_type_combo)
 
@@ -67,19 +75,35 @@ class SessionPanel(QFrame):
         self.device_spin = QSpinBox()
         self.device_spin.setRange(0, 9)
         self.device_spin.setValue(0)
+        self.device_spin.valueChanged.connect(self._on_device_changed)
         dev_layout.addWidget(self.device_spin)
         source_layout.addWidget(self.device_row)
 
-        # Video file sub-row
+        # Video file sub-row with metadata
         self.file_row = QWidget()
-        file_layout = QHBoxLayout(self.file_row)
+        file_layout = QVBoxLayout(self.file_row)
         file_layout.setContentsMargins(0, 0, 0, 0)
+        file_layout.setSpacing(4)
+
+        browse_row = QHBoxLayout()
         self.file_path_label = QLabel("No file selected")
-        self.file_path_label.setStyleSheet("color: #65768d; font-size: 11px;")
+        self.file_path_label.setStyleSheet("color: #8fa1b6; font-size: 11px;")
         self.browse_btn = QPushButton("Browse...")
         self.browse_btn.clicked.connect(self._on_browse_file)
-        file_layout.addWidget(self.file_path_label, stretch=1)
-        file_layout.addWidget(self.browse_btn)
+        browse_row.addWidget(self.file_path_label, stretch=1)
+        browse_row.addWidget(self.browse_btn)
+        file_layout.addLayout(browse_row)
+
+        # Video metadata display
+        self.file_meta_label = QLabel("Dimensions: -- | FPS: -- | Duration: --")
+        self.file_meta_label.setStyleSheet("color: #65768d; font-size: 10px; font-family: monospace;")
+        file_layout.addWidget(self.file_meta_label)
+
+        # Loop checkbox for file playback
+        self.loop_checkbox = QCheckBox("Loop Video on End of File")
+        self.loop_checkbox.setChecked(True)
+        file_layout.addWidget(self.loop_checkbox)
+
         self.file_row.setVisible(False)
         source_layout.addWidget(self.file_row)
 
@@ -145,16 +169,28 @@ class SessionPanel(QFrame):
         status_layout.setContentsMargins(10, 10, 10, 10)
         status_layout.setSpacing(6)
 
-        status_title = QLabel("SYSTEM STATUS")
+        status_title = QLabel("SUBSYSTEM STATUS")
         status_title.setStyleSheet("font-size: 11px; font-weight: 700; color: #9fb0c3; letter-spacing: 0.5px;")
         status_layout.addWidget(status_title)
 
         self.cam_status_badge = StatusBadge("CAMERA NOT CONNECTED", color=COLOR_DANGER)
-        self.model_status_badge = StatusBadge("MODEL NOT LOADED", color=COLOR_WARNING)
+        self.model_status_badge = StatusBadge("MODEL NOT CONFIGURED", color=COLOR_WARNING)
         status_layout.addWidget(self.cam_status_badge)
         status_layout.addWidget(self.model_status_badge)
 
         layout.addWidget(status_box)
+
+    @property
+    def selected_video_file(self) -> Path | None:
+        return self._selected_video_file
+
+    @property
+    def should_loop_video(self) -> bool:
+        return self.loop_checkbox.isChecked()
+
+    @property
+    def is_recording_enabled(self) -> bool:
+        return self.record_checkbox.isChecked()
 
     def set_session_state(self, state: str) -> None:
         """Update button enabled states according to active session lifecycle."""
@@ -165,20 +201,29 @@ class SessionPanel(QFrame):
             self.pause_btn.setText("⏸  Pause")
             self.stop_btn.setEnabled(True)
             self.source_type_combo.setEnabled(False)
-            self.cam_status_badge.set_badge_color(COLOR_SUCCESS, "CAMERA ACTIVE")
+            self.device_spin.setEnabled(False)
+            self.browse_btn.setEnabled(False)
+            self.record_checkbox.setEnabled(False)
+            self.cam_status_badge.set_badge_color(COLOR_SUCCESS, "CAPTURE ACTIVE")
         elif st == "PAUSED":
             self.start_btn.setEnabled(False)
             self.pause_btn.setEnabled(True)
             self.pause_btn.setText("▶  Resume")
             self.stop_btn.setEnabled(True)
             self.source_type_combo.setEnabled(False)
-            self.cam_status_badge.set_badge_color(COLOR_WARNING, "CAMERA PAUSED")
+            self.device_spin.setEnabled(False)
+            self.browse_btn.setEnabled(False)
+            self.record_checkbox.setEnabled(False)
+            self.cam_status_badge.set_badge_color(COLOR_WARNING, "CAPTURE PAUSED")
         else:  # IDLE / STOPPED
             self.start_btn.setEnabled(True)
             self.pause_btn.setEnabled(False)
             self.pause_btn.setText("⏸  Pause")
             self.stop_btn.setEnabled(False)
             self.source_type_combo.setEnabled(True)
+            self.device_spin.setEnabled(True)
+            self.browse_btn.setEnabled(True)
+            self.record_checkbox.setEnabled(True)
             self.cam_status_badge.set_badge_color(COLOR_DANGER, "CAMERA NOT CONNECTED")
 
     def set_available_protocols(self, protocol_names: list[str], default_selected: str | None = None) -> None:
@@ -202,20 +247,44 @@ class SessionPanel(QFrame):
         if is_device:
             self.source_changed.emit("device_index", self.device_spin.value())
         elif is_file:
-            self.source_changed.emit("video_file", self.file_path_label.text())
+            self.source_changed.emit("video_file", str(self._selected_video_file) if self._selected_video_file else "")
         else:
             self.source_changed.emit("rtsp_stream", "rtsp://localhost:8554/live")
 
+    def _on_device_changed(self, val: int) -> None:
+        if self.source_type_combo.currentIndex() == 0:
+            self.source_changed.emit("device_index", val)
+
     def _on_browse_file(self) -> None:
+        # Default start directory: ENIGMA-360 videos if available
+        start_dir = ""
+        enigma_videos = self._default_dataset_dir / "data" / "videos"
+        if enigma_videos.exists():
+            start_dir = str(enigma_videos)
+        elif self._default_dataset_dir.exists():
+            start_dir = str(self._default_dataset_dir)
+
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Experiment Video Recording",
-            "",
+            "Select Experiment Video File",
+            start_dir,
             "Video Files (*.mp4 *.avi *.mkv *.mov);;All Files (*.*)",
         )
         if path:
-            filename = Path(path).name
-            self.file_path_label.setText(filename)
-            self.file_path_label.setToolTip(path)
-            self.source_changed.emit("video_file", path)
+            self.set_selected_video_file(Path(path))
 
+    def set_selected_video_file(self, file_path: Path) -> None:
+        """Assign video file and display its inspected metadata."""
+        self._selected_video_file = file_path
+        self.file_path_label.setText(file_path.name)
+        self.file_path_label.setToolTip(str(file_path))
+
+        # Inspect video metadata using VideoFileSource helper
+        source = VideoFileSource(file_path)
+        meta = source.get_metadata()
+        dur_str = f"{int(meta.duration_seconds // 60):02d}:{int(meta.duration_seconds % 60):02d}" if meta.duration_seconds else "--:--"
+        self.file_meta_label.setText(
+            f"{meta.width}x{meta.height} | {meta.fps:.1f} FPS | {meta.total_frames or '--'} frames ({dur_str})"
+        )
+
+        self.source_changed.emit("video_file", str(file_path))
