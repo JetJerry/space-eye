@@ -130,3 +130,4 @@ class SettingsDialog(QDialog):
         self.config.camera.height = self.height_spin.value()
         self.config.camera.target_fps = self.fps_spin.value()
         self.accept()
+

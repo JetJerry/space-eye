@@ -218,3 +218,4 @@ class SessionPanel(QFrame):
             self.file_path_label.setText(filename)
             self.file_path_label.setToolTip(path)
             self.source_changed.emit("video_file", path)
+

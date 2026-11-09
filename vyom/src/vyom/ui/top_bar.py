@@ -99,3 +99,4 @@ class TopBar(QFrame):
         color = COLOR_SUCCESS if device == "GPU" else COLOR_ACCENT
         self.compute_badge.set_badge_color(color, f"COMPUTE: {device}")
         self.compute_badge.setToolTip(detail)
+
