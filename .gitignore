@@ -25,6 +25,10 @@ datasets/
 **/data/yolo_obb/labels/train/*
 **/data/yolo_obb/labels/val/*
 **/data/yolo_obb/labels/test/*
+**/data/yolo_obb_v2/images/train/*
+**/data/yolo_obb_v2/images/val/*
+**/data/yolo_obb_v2/labels/train/*
+**/data/yolo_obb_v2/labels/val/*
 
 # Model Weights & Offline Assets (Do not commit binary weights)
 *.pt

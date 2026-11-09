@@ -92,3 +92,69 @@ def test_model_metadata_verification():
     assert meta["metrics"]["mAP50"] > 0.50
     assert meta["metrics"]["mAP50_95"] > 0.40
     assert meta["training_hardware"]["cuda_available"] is True
+
+
+def test_dataset_v2_manifest_and_separation():
+    """Verify dataset v2 manifest, class balance, and strict background separation."""
+    manifest_path = Path("d:/space_eye/vyom/data/yolo_obb_v2/manifest.json")
+    if not manifest_path.exists():
+        pytest.skip("dataset v2 manifest not found")
+
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    assert manifest["version"] == "2.0.0"
+    assert manifest["splits"]["train"]["image_count"] == 240
+    assert manifest["splits"]["val"]["image_count"] == 60
+
+    # Verify zero background video overlap
+    train_vids = set(manifest["background_separation"]["train_source_videos"])
+    val_vids = set(manifest["background_separation"]["val_source_videos"])
+    overlap = train_vids.intersection(val_vids)
+    assert len(overlap) == 0, f"Found overlapping background videos: {overlap}"
+    assert manifest["background_separation"]["overlap_video_count"] == 0
+
+    # Verify class balance in train split (all classes present and balanced)
+    tr_counts = manifest["splits"]["train"]["class_counts"]
+    for cname in ["sample_vial", "pipette", "multiwell_plate", "centrifuge_tube", "rig_slot"]:
+        assert cname in tr_counts
+        assert tr_counts[cname] > 100
+
+
+def test_object_patch_geometry_tightness():
+    """Verify that all 5 procedural renderers generate mathematically tight OBB bounding boxes."""
+    from scripts.generate_synthetic_obb_dataset_v2 import (
+        create_sample_vial_patch,
+        create_pipette_patch,
+        create_multiwell_plate_patch,
+        create_centrifuge_tube_patch,
+        create_rig_slot_patch,
+        check_collision,
+    )
+
+    creators = [
+        ("vial", create_sample_vial_patch, 34, 85),
+        ("pipette", create_pipette_patch, 26, 140),
+        ("plate", create_multiwell_plate_patch, 120, 85),
+        ("tube", create_centrifuge_tube_patch, 36, 100),
+        ("slot", create_rig_slot_patch, 75, 75),
+    ]
+
+    for name, fn, w, h in creators:
+        patch, corners = fn(w, h)
+        assert patch.shape[2] == 4  # RGBA
+        assert corners.shape == (4, 2)
+        min_x, min_y = corners.min(axis=0)
+        max_x, max_y = corners.max(axis=0)
+        # Bounding box width and height must match requested size within 1 pixel
+        assert abs((max_x - min_x) - w) <= 1.0, f"{name} width mismatch"
+        assert abs((max_y - min_y) - h) <= 1.0, f"{name} height mismatch"
+
+    # Test collision detection
+    box1 = np.array([[10, 10], [50, 10], [50, 50], [10, 50]], dtype=np.float32)
+    box2_overlap = np.array([[30, 30], [70, 30], [70, 70], [30, 70]], dtype=np.float32)
+    box3_disjoint = np.array([[100, 100], [140, 100], [140, 140], [100, 140]], dtype=np.float32)
+
+    assert check_collision(box1, [box2_overlap]) is True
+    assert check_collision(box1, [box3_disjoint]) is False
+

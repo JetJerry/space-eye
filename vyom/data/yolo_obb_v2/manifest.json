@@ -1,0 +1,2181 @@
+{
+  "dataset_name": "VYOM Procedural Apparatus Demo Dataset v2 (OBB)",
+  "version": "2.0.0",
+  "taxonomy": [
+    "sample_vial",
+    "pipette",
+    "multiwell_plate",
+    "centrifuge_tube",
+    "rig_slot"
+  ],
+  "splits": {
+    "train": {
+      "image_count": 240,
+      "source_videos": [
+        "103",
+        "104",
+        "105",
+        "109",
+        "110",
+        "111",
+        "112",
+        "113",
+        "114",
+        "124"
+      ],
+      "class_counts": {
+        "sample_vial": 148,
+        "pipette": 148,
+        "multiwell_plate": 148,
+        "centrifuge_tube": 148,
+        "rig_slot": 148
+      }
+    },
+    "val": {
+      "image_count": 60,
+      "source_videos": [
+        "100",
+        "101",
+        "102",
+        "115",
+        "116",
+        "127"
+      ],
+      "class_counts": {
+        "sample_vial": 36,
+        "pipette": 36,
+        "multiwell_plate": 36,
+        "centrifuge_tube": 36,
+        "rig_slot": 35
+      }
+    }
+  },
+  "background_separation": {
+    "train_source_videos": [
+      "103",
+      "104",
+      "105",
+      "109",
+      "110",
+      "111",
+      "112",
+      "113",
+      "114",
+      "124"
+    ],
+    "val_source_videos": [
+      "100",
+      "101",
+      "102",
+      "115",
+      "116",
+      "127"
+    ],
+    "overlap_video_count": 0,
+    "total_extracted_backgrounds": 150,
+    "backgrounds": [
+      {
+        "video_id": "103",
+        "frame_number": 1358,
+        "timestamp_sec": 45.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 98.0,
+        "std_contrast": 40.7
+      },
+      {
+        "video_id": "103",
+        "frame_number": 2623,
+        "timestamp_sec": 87.43,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 99.9,
+        "std_contrast": 41.2
+      },
+      {
+        "video_id": "103",
+        "frame_number": 3888,
+        "timestamp_sec": 129.6,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 97.0,
+        "std_contrast": 40.4
+      },
+      {
+        "video_id": "103",
+        "frame_number": 5154,
+        "timestamp_sec": 171.8,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 98.1,
+        "std_contrast": 40.8
+      },
+      {
+        "video_id": "103",
+        "frame_number": 6419,
+        "timestamp_sec": 213.97,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 99.0,
+        "std_contrast": 40.8
+      },
+      {
+        "video_id": "103",
+        "frame_number": 7685,
+        "timestamp_sec": 256.17,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 97.8,
+        "std_contrast": 40.6
+      },
+      {
+        "video_id": "103",
+        "frame_number": 8950,
+        "timestamp_sec": 298.33,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 97.5,
+        "std_contrast": 40.7
+      },
+      {
+        "video_id": "103",
+        "frame_number": 10215,
+        "timestamp_sec": 340.5,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 98.6,
+        "std_contrast": 41.0
+      },
+      {
+        "video_id": "103",
+        "frame_number": 11481,
+        "timestamp_sec": 382.7,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 98.5,
+        "std_contrast": 41.2
+      },
+      {
+        "video_id": "103",
+        "frame_number": 12746,
+        "timestamp_sec": 424.87,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 97.3,
+        "std_contrast": 41.0
+      },
+      {
+        "video_id": "103",
+        "frame_number": 14012,
+        "timestamp_sec": 467.07,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 97.4,
+        "std_contrast": 40.9
+      },
+      {
+        "video_id": "103",
+        "frame_number": 15277,
+        "timestamp_sec": 509.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 98.7,
+        "std_contrast": 40.9
+      },
+      {
+        "video_id": "104",
+        "frame_number": 3230,
+        "timestamp_sec": 107.67,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.1,
+        "std_contrast": 47.4
+      },
+      {
+        "video_id": "104",
+        "frame_number": 6239,
+        "timestamp_sec": 207.97,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.4,
+        "std_contrast": 47.4
+      },
+      {
+        "video_id": "104",
+        "frame_number": 9249,
+        "timestamp_sec": 308.3,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.8,
+        "std_contrast": 47.3
+      },
+      {
+        "video_id": "104",
+        "frame_number": 12259,
+        "timestamp_sec": 408.63,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.7,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "104",
+        "frame_number": 15269,
+        "timestamp_sec": 508.97,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.9,
+        "std_contrast": 46.7
+      },
+      {
+        "video_id": "104",
+        "frame_number": 18278,
+        "timestamp_sec": 609.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.6,
+        "std_contrast": 46.6
+      },
+      {
+        "video_id": "104",
+        "frame_number": 21288,
+        "timestamp_sec": 709.6,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.8,
+        "std_contrast": 46.2
+      },
+      {
+        "video_id": "104",
+        "frame_number": 24298,
+        "timestamp_sec": 809.93,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.6,
+        "std_contrast": 46.4
+      },
+      {
+        "video_id": "104",
+        "frame_number": 27308,
+        "timestamp_sec": 910.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.4,
+        "std_contrast": 46.6
+      },
+      {
+        "video_id": "104",
+        "frame_number": 30317,
+        "timestamp_sec": 1010.57,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.6,
+        "std_contrast": 46.4
+      },
+      {
+        "video_id": "104",
+        "frame_number": 33327,
+        "timestamp_sec": 1110.9,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.2,
+        "std_contrast": 47.0
+      },
+      {
+        "video_id": "104",
+        "frame_number": 36337,
+        "timestamp_sec": 1211.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.9,
+        "std_contrast": 46.6
+      },
+      {
+        "video_id": "105",
+        "frame_number": 3734,
+        "timestamp_sec": 124.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.6,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "105",
+        "frame_number": 7214,
+        "timestamp_sec": 240.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.7,
+        "std_contrast": 45.3
+      },
+      {
+        "video_id": "105",
+        "frame_number": 10694,
+        "timestamp_sec": 356.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.1,
+        "std_contrast": 45.7
+      },
+      {
+        "video_id": "105",
+        "frame_number": 14174,
+        "timestamp_sec": 472.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 114.4,
+        "std_contrast": 44.0
+      },
+      {
+        "video_id": "105",
+        "frame_number": 17654,
+        "timestamp_sec": 588.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 115.7,
+        "std_contrast": 44.7
+      },
+      {
+        "video_id": "105",
+        "frame_number": 21134,
+        "timestamp_sec": 704.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.1,
+        "std_contrast": 44.8
+      },
+      {
+        "video_id": "105",
+        "frame_number": 24614,
+        "timestamp_sec": 820.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 114.6,
+        "std_contrast": 44.2
+      },
+      {
+        "video_id": "105",
+        "frame_number": 28094,
+        "timestamp_sec": 936.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.5,
+        "std_contrast": 45.3
+      },
+      {
+        "video_id": "105",
+        "frame_number": 31574,
+        "timestamp_sec": 1052.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.9,
+        "std_contrast": 44.9
+      },
+      {
+        "video_id": "105",
+        "frame_number": 35053,
+        "timestamp_sec": 1168.43,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.6,
+        "std_contrast": 45.2
+      },
+      {
+        "video_id": "105",
+        "frame_number": 38533,
+        "timestamp_sec": 1284.43,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.9,
+        "std_contrast": 44.4
+      },
+      {
+        "video_id": "105",
+        "frame_number": 42013,
+        "timestamp_sec": 1400.43,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 114.6,
+        "std_contrast": 44.2
+      },
+      {
+        "video_id": "109",
+        "frame_number": 2062,
+        "timestamp_sec": 68.73,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.8,
+        "std_contrast": 45.0
+      },
+      {
+        "video_id": "109",
+        "frame_number": 3983,
+        "timestamp_sec": 132.77,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.0,
+        "std_contrast": 44.8
+      },
+      {
+        "video_id": "109",
+        "frame_number": 5905,
+        "timestamp_sec": 196.83,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.4,
+        "std_contrast": 44.5
+      },
+      {
+        "video_id": "109",
+        "frame_number": 7827,
+        "timestamp_sec": 260.9,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 115.9,
+        "std_contrast": 44.6
+      },
+      {
+        "video_id": "109",
+        "frame_number": 9748,
+        "timestamp_sec": 324.93,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.7,
+        "std_contrast": 44.7
+      },
+      {
+        "video_id": "109",
+        "frame_number": 11670,
+        "timestamp_sec": 389.0,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 115.8,
+        "std_contrast": 43.8
+      },
+      {
+        "video_id": "109",
+        "frame_number": 13592,
+        "timestamp_sec": 453.07,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 115.4,
+        "std_contrast": 43.8
+      },
+      {
+        "video_id": "109",
+        "frame_number": 15513,
+        "timestamp_sec": 517.1,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.3,
+        "std_contrast": 44.3
+      },
+      {
+        "video_id": "109",
+        "frame_number": 17435,
+        "timestamp_sec": 581.17,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 115.7,
+        "std_contrast": 44.6
+      },
+      {
+        "video_id": "109",
+        "frame_number": 19356,
+        "timestamp_sec": 645.2,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.6,
+        "std_contrast": 44.7
+      },
+      {
+        "video_id": "109",
+        "frame_number": 21278,
+        "timestamp_sec": 709.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 114.7,
+        "std_contrast": 44.6
+      },
+      {
+        "video_id": "109",
+        "frame_number": 23200,
+        "timestamp_sec": 773.33,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.6,
+        "std_contrast": 44.1
+      },
+      {
+        "video_id": "110",
+        "frame_number": 1685,
+        "timestamp_sec": 56.17,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.4,
+        "std_contrast": 45.6
+      },
+      {
+        "video_id": "110",
+        "frame_number": 3255,
+        "timestamp_sec": 108.5,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.4,
+        "std_contrast": 44.9
+      },
+      {
+        "video_id": "110",
+        "frame_number": 4825,
+        "timestamp_sec": 160.83,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.1,
+        "std_contrast": 47.9
+      },
+      {
+        "video_id": "110",
+        "frame_number": 6396,
+        "timestamp_sec": 213.2,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.5,
+        "std_contrast": 45.9
+      },
+      {
+        "video_id": "110",
+        "frame_number": 7966,
+        "timestamp_sec": 265.53,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.0,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "110",
+        "frame_number": 9536,
+        "timestamp_sec": 317.87,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.6,
+        "std_contrast": 46.0
+      },
+      {
+        "video_id": "110",
+        "frame_number": 11107,
+        "timestamp_sec": 370.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 122.1,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "110",
+        "frame_number": 12677,
+        "timestamp_sec": 422.57,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.9,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "110",
+        "frame_number": 14247,
+        "timestamp_sec": 474.9,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 122.2,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "110",
+        "frame_number": 15817,
+        "timestamp_sec": 527.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 122.2,
+        "std_contrast": 46.0
+      },
+      {
+        "video_id": "110",
+        "frame_number": 17388,
+        "timestamp_sec": 579.6,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.4,
+        "std_contrast": 45.4
+      },
+      {
+        "video_id": "110",
+        "frame_number": 18958,
+        "timestamp_sec": 631.93,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.5,
+        "std_contrast": 45.6
+      },
+      {
+        "video_id": "111",
+        "frame_number": 3844,
+        "timestamp_sec": 128.13,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.9,
+        "std_contrast": 45.9
+      },
+      {
+        "video_id": "111",
+        "frame_number": 7426,
+        "timestamp_sec": 247.53,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.4,
+        "std_contrast": 46.3
+      },
+      {
+        "video_id": "111",
+        "frame_number": 11008,
+        "timestamp_sec": 366.93,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.6,
+        "std_contrast": 46.3
+      },
+      {
+        "video_id": "111",
+        "frame_number": 14590,
+        "timestamp_sec": 486.33,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.3,
+        "std_contrast": 47.1
+      },
+      {
+        "video_id": "111",
+        "frame_number": 18172,
+        "timestamp_sec": 605.73,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.3,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "111",
+        "frame_number": 21753,
+        "timestamp_sec": 725.1,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.2,
+        "std_contrast": 46.5
+      },
+      {
+        "video_id": "111",
+        "frame_number": 25335,
+        "timestamp_sec": 844.5,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.8,
+        "std_contrast": 46.2
+      },
+      {
+        "video_id": "111",
+        "frame_number": 28917,
+        "timestamp_sec": 963.9,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.2,
+        "std_contrast": 46.0
+      },
+      {
+        "video_id": "111",
+        "frame_number": 32499,
+        "timestamp_sec": 1083.3,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.8,
+        "std_contrast": 46.2
+      },
+      {
+        "video_id": "111",
+        "frame_number": 36081,
+        "timestamp_sec": 1202.7,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.5,
+        "std_contrast": 45.9
+      },
+      {
+        "video_id": "112",
+        "frame_number": 1845,
+        "timestamp_sec": 61.5,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.9,
+        "std_contrast": 47.0
+      },
+      {
+        "video_id": "112",
+        "frame_number": 3564,
+        "timestamp_sec": 118.8,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.9,
+        "std_contrast": 46.7
+      },
+      {
+        "video_id": "112",
+        "frame_number": 5283,
+        "timestamp_sec": 176.1,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.0,
+        "std_contrast": 48.7
+      },
+      {
+        "video_id": "112",
+        "frame_number": 7003,
+        "timestamp_sec": 233.43,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.6,
+        "std_contrast": 46.6
+      },
+      {
+        "video_id": "112",
+        "frame_number": 8722,
+        "timestamp_sec": 290.73,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.3,
+        "std_contrast": 46.9
+      },
+      {
+        "video_id": "112",
+        "frame_number": 10441,
+        "timestamp_sec": 348.03,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.6,
+        "std_contrast": 47.0
+      },
+      {
+        "video_id": "112",
+        "frame_number": 12161,
+        "timestamp_sec": 405.37,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.9,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "112",
+        "frame_number": 13880,
+        "timestamp_sec": 462.67,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.8,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "113",
+        "frame_number": 1417,
+        "timestamp_sec": 47.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.1,
+        "std_contrast": 46.5
+      },
+      {
+        "video_id": "113",
+        "frame_number": 2737,
+        "timestamp_sec": 91.23,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.1,
+        "std_contrast": 47.7
+      },
+      {
+        "video_id": "113",
+        "frame_number": 4058,
+        "timestamp_sec": 135.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.5,
+        "std_contrast": 46.4
+      },
+      {
+        "video_id": "113",
+        "frame_number": 5378,
+        "timestamp_sec": 179.27,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.1,
+        "std_contrast": 46.3
+      },
+      {
+        "video_id": "113",
+        "frame_number": 6699,
+        "timestamp_sec": 223.3,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.3,
+        "std_contrast": 45.1
+      },
+      {
+        "video_id": "113",
+        "frame_number": 8019,
+        "timestamp_sec": 267.3,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.7,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "113",
+        "frame_number": 9340,
+        "timestamp_sec": 311.33,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.3,
+        "std_contrast": 46.9
+      },
+      {
+        "video_id": "113",
+        "frame_number": 10660,
+        "timestamp_sec": 355.33,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.2,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "114",
+        "frame_number": 3570,
+        "timestamp_sec": 119.0,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.4,
+        "std_contrast": 48.4
+      },
+      {
+        "video_id": "114",
+        "frame_number": 6898,
+        "timestamp_sec": 229.93,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.4,
+        "std_contrast": 48.2
+      },
+      {
+        "video_id": "114",
+        "frame_number": 10225,
+        "timestamp_sec": 340.83,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.4,
+        "std_contrast": 47.3
+      },
+      {
+        "video_id": "114",
+        "frame_number": 13552,
+        "timestamp_sec": 451.73,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.7,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "114",
+        "frame_number": 16880,
+        "timestamp_sec": 562.67,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.8,
+        "std_contrast": 46.6
+      },
+      {
+        "video_id": "114",
+        "frame_number": 20207,
+        "timestamp_sec": 673.57,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.0,
+        "std_contrast": 47.1
+      },
+      {
+        "video_id": "114",
+        "frame_number": 23534,
+        "timestamp_sec": 784.47,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.4,
+        "std_contrast": 45.7
+      },
+      {
+        "video_id": "114",
+        "frame_number": 26862,
+        "timestamp_sec": 895.4,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 122.1,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "124",
+        "frame_number": 1566,
+        "timestamp_sec": 52.2,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.8,
+        "std_contrast": 47.4
+      },
+      {
+        "video_id": "124",
+        "frame_number": 3026,
+        "timestamp_sec": 100.87,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.8,
+        "std_contrast": 46.9
+      },
+      {
+        "video_id": "124",
+        "frame_number": 4486,
+        "timestamp_sec": 149.53,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.7,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "124",
+        "frame_number": 5945,
+        "timestamp_sec": 198.17,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.5,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "124",
+        "frame_number": 7405,
+        "timestamp_sec": 246.83,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.7,
+        "std_contrast": 47.1
+      },
+      {
+        "video_id": "124",
+        "frame_number": 8865,
+        "timestamp_sec": 295.5,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.9,
+        "std_contrast": 47.0
+      },
+      {
+        "video_id": "124",
+        "frame_number": 10325,
+        "timestamp_sec": 344.17,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.1,
+        "std_contrast": 47.2
+      },
+      {
+        "video_id": "124",
+        "frame_number": 11784,
+        "timestamp_sec": 392.8,
+        "split": "train",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.2,
+        "std_contrast": 46.8
+      },
+      {
+        "video_id": "100",
+        "frame_number": 2742,
+        "timestamp_sec": 91.4,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.2,
+        "std_contrast": 47.3
+      },
+      {
+        "video_id": "100",
+        "frame_number": 5865,
+        "timestamp_sec": 195.5,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.5,
+        "std_contrast": 47.0
+      },
+      {
+        "video_id": "100",
+        "frame_number": 8987,
+        "timestamp_sec": 299.57,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.1,
+        "std_contrast": 46.7
+      },
+      {
+        "video_id": "100",
+        "frame_number": 12110,
+        "timestamp_sec": 403.67,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 116.8,
+        "std_contrast": 46.1
+      },
+      {
+        "video_id": "100",
+        "frame_number": 15233,
+        "timestamp_sec": 507.77,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.6,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "100",
+        "frame_number": 18356,
+        "timestamp_sec": 611.87,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.8,
+        "std_contrast": 45.6
+      },
+      {
+        "video_id": "100",
+        "frame_number": 21479,
+        "timestamp_sec": 715.97,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.4,
+        "std_contrast": 45.7
+      },
+      {
+        "video_id": "100",
+        "frame_number": 24602,
+        "timestamp_sec": 820.07,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.6,
+        "std_contrast": 45.3
+      },
+      {
+        "video_id": "100",
+        "frame_number": 27725,
+        "timestamp_sec": 924.17,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.7,
+        "std_contrast": 45.4
+      },
+      {
+        "video_id": "100",
+        "frame_number": 30848,
+        "timestamp_sec": 1028.27,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.9,
+        "std_contrast": 45.5
+      },
+      {
+        "video_id": "101",
+        "frame_number": 1749,
+        "timestamp_sec": 58.3,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.9,
+        "std_contrast": 45.2
+      },
+      {
+        "video_id": "101",
+        "frame_number": 3742,
+        "timestamp_sec": 124.73,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.1,
+        "std_contrast": 44.5
+      },
+      {
+        "video_id": "101",
+        "frame_number": 5734,
+        "timestamp_sec": 191.13,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.3,
+        "std_contrast": 45.6
+      },
+      {
+        "video_id": "101",
+        "frame_number": 7727,
+        "timestamp_sec": 257.57,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.3,
+        "std_contrast": 45.4
+      },
+      {
+        "video_id": "101",
+        "frame_number": 9720,
+        "timestamp_sec": 324.0,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.8,
+        "std_contrast": 45.4
+      },
+      {
+        "video_id": "101",
+        "frame_number": 11712,
+        "timestamp_sec": 390.4,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.5,
+        "std_contrast": 45.6
+      },
+      {
+        "video_id": "101",
+        "frame_number": 13705,
+        "timestamp_sec": 456.83,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.6,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "101",
+        "frame_number": 15697,
+        "timestamp_sec": 523.23,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.1,
+        "std_contrast": 45.4
+      },
+      {
+        "video_id": "101",
+        "frame_number": 17690,
+        "timestamp_sec": 589.67,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.8,
+        "std_contrast": 45.1
+      },
+      {
+        "video_id": "101",
+        "frame_number": 19683,
+        "timestamp_sec": 656.1,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.5,
+        "std_contrast": 45.9
+      },
+      {
+        "video_id": "102",
+        "frame_number": 4580,
+        "timestamp_sec": 152.67,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.3,
+        "std_contrast": 42.1
+      },
+      {
+        "video_id": "102",
+        "frame_number": 9796,
+        "timestamp_sec": 326.53,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.1,
+        "std_contrast": 41.9
+      },
+      {
+        "video_id": "102",
+        "frame_number": 15012,
+        "timestamp_sec": 500.4,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.5,
+        "std_contrast": 41.9
+      },
+      {
+        "video_id": "102",
+        "frame_number": 20228,
+        "timestamp_sec": 674.27,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 103.5,
+        "std_contrast": 41.6
+      },
+      {
+        "video_id": "102",
+        "frame_number": 25444,
+        "timestamp_sec": 848.13,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.6,
+        "std_contrast": 41.8
+      },
+      {
+        "video_id": "102",
+        "frame_number": 30661,
+        "timestamp_sec": 1022.03,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 104.4,
+        "std_contrast": 41.5
+      },
+      {
+        "video_id": "102",
+        "frame_number": 35877,
+        "timestamp_sec": 1195.9,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 104.6,
+        "std_contrast": 41.4
+      },
+      {
+        "video_id": "102",
+        "frame_number": 41093,
+        "timestamp_sec": 1369.77,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.7,
+        "std_contrast": 42.0
+      },
+      {
+        "video_id": "102",
+        "frame_number": 46309,
+        "timestamp_sec": 1543.63,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 105.5,
+        "std_contrast": 42.0
+      },
+      {
+        "video_id": "102",
+        "frame_number": 51525,
+        "timestamp_sec": 1717.5,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 106.4,
+        "std_contrast": 42.4
+      },
+      {
+        "video_id": "115",
+        "frame_number": 1096,
+        "timestamp_sec": 36.53,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 103.1,
+        "std_contrast": 42.8
+      },
+      {
+        "video_id": "115",
+        "frame_number": 2344,
+        "timestamp_sec": 78.13,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 102.5,
+        "std_contrast": 42.5
+      },
+      {
+        "video_id": "115",
+        "frame_number": 3592,
+        "timestamp_sec": 119.73,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 101.2,
+        "std_contrast": 42.7
+      },
+      {
+        "video_id": "115",
+        "frame_number": 4841,
+        "timestamp_sec": 161.37,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 102.1,
+        "std_contrast": 43.0
+      },
+      {
+        "video_id": "115",
+        "frame_number": 6089,
+        "timestamp_sec": 202.97,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 102.0,
+        "std_contrast": 42.6
+      },
+      {
+        "video_id": "115",
+        "frame_number": 7338,
+        "timestamp_sec": 244.6,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 103.3,
+        "std_contrast": 43.2
+      },
+      {
+        "video_id": "116",
+        "frame_number": 3192,
+        "timestamp_sec": 106.4,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.7,
+        "std_contrast": 47.3
+      },
+      {
+        "video_id": "116",
+        "frame_number": 6829,
+        "timestamp_sec": 227.63,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 117.1,
+        "std_contrast": 47.9
+      },
+      {
+        "video_id": "116",
+        "frame_number": 10465,
+        "timestamp_sec": 348.83,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.5,
+        "std_contrast": 47.6
+      },
+      {
+        "video_id": "116",
+        "frame_number": 14101,
+        "timestamp_sec": 470.03,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 118.6,
+        "std_contrast": 47.5
+      },
+      {
+        "video_id": "116",
+        "frame_number": 17738,
+        "timestamp_sec": 591.27,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.3,
+        "std_contrast": 47.8
+      },
+      {
+        "video_id": "116",
+        "frame_number": 21374,
+        "timestamp_sec": 712.47,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 119.0,
+        "std_contrast": 47.4
+      },
+      {
+        "video_id": "127",
+        "frame_number": 2573,
+        "timestamp_sec": 85.77,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.2,
+        "std_contrast": 45.5
+      },
+      {
+        "video_id": "127",
+        "frame_number": 5504,
+        "timestamp_sec": 183.47,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.4,
+        "std_contrast": 45.8
+      },
+      {
+        "video_id": "127",
+        "frame_number": 8436,
+        "timestamp_sec": 281.2,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.7,
+        "std_contrast": 46.2
+      },
+      {
+        "video_id": "127",
+        "frame_number": 11367,
+        "timestamp_sec": 378.9,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 122.2,
+        "std_contrast": 45.5
+      },
+      {
+        "video_id": "127",
+        "frame_number": 14298,
+        "timestamp_sec": 476.6,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 120.6,
+        "std_contrast": 45.1
+      },
+      {
+        "video_id": "127",
+        "frame_number": 17229,
+        "timestamp_sec": 574.3,
+        "split": "val",
+        "crop_rect": [
+          156,
+          10,
+          516,
+          370
+        ],
+        "mean_brightness": 121.0,
+        "std_contrast": 45.2
+      }
+    ]
+  },
+  "total_images": 300,
+  "total_instances": 919
+}
