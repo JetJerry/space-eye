@@ -1,0 +1,72 @@
+{
+  "model_name": "VYOM Custom YOLOv8n-OBB Smoke Model",
+  "checkpoint_filename": "vyom_yolov8n_obb_smoke.pt",
+  "checkpoint_path": "d:\\space_eye\\vyom\\models\\vyom_yolov8n_obb_smoke.pt",
+  "sha256": "a781e813da04fa349b1097d3fd29847b31ffbdca067fb8e68cf3352c4d478bcc",
+  "base_pretrained": "d:\\space_eye\\vyom\\models\\yolov8n-obb.pt",
+  "dataset_yaml": "d:\\space_eye\\vyom\\data\\yolo_obb_final\\dataset.yaml",
+  "num_classes": 10,
+  "class_names": {
+    "0": "centrifuge_tube",
+    "1": "tube_rack",
+    "2": "rack_hole",
+    "3": "tube_cap",
+    "4": "pipette",
+    "5": "beaker",
+    "6": "conical_flask",
+    "7": "sample_vial",
+    "8": "multiwell_plate",
+    "9": "rig_slot"
+  },
+  "provisional_synthetic_classes": [
+    "rig_slot",
+    "multiwell_plate",
+    "sample_vial"
+  ],
+  "real_world_classes": [
+    "pipette",
+    "rack_hole",
+    "tube_cap",
+    "beaker",
+    "centrifuge_tube",
+    "tube_rack",
+    "conical_flask"
+  ],
+  "hardware": {
+    "device_name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "total_vram_mb": 4095.5,
+    "peak_vram_used_mb": 370.1,
+    "pytorch_version": "2.5.1+cu121",
+    "cuda_version": "12.1"
+  },
+  "training_hyperparameters": {
+    "epochs": 5,
+    "batch_size": 2,
+    "imgsz": 640,
+    "amp": true,
+    "workers": 0,
+    "cache": false,
+    "experiment_dir": "d:\\space_eye\\runs\\obb\\vyom_smoke_unified"
+  },
+  "training_duration_seconds": 133.4,
+  "metrics": {
+    "overall_precision": 0.7201,
+    "overall_recall": 0.5926,
+    "overall_mAP50": 0.6064,
+    "overall_mAP50_95": 0.4998,
+    "real_world_classes_mean_mAP50": 0.3241,
+    "provisional_synthetic_classes_mean_mAP50": 0.9096,
+    "per_class_mAP50": {
+      "centrifuge_tube": 0.3834,
+      "tube_rack": 0.1767,
+      "rack_hole": 0.4241,
+      "tube_cap": 0.1646,
+      "pipette": 0.7737,
+      "beaker": 0.3157,
+      "conical_flask": 0.0306,
+      "sample_vial": 0.801,
+      "multiwell_plate": 0.9467,
+      "rig_slot": 0.9811
+    }
+  }
+}

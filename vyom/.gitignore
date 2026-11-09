@@ -63,12 +63,12 @@ data/raw/*
 !data/raw/.gitkeep
 data/annotations/*
 !data/annotations/.gitkeep
-data/yolo_obb/images/train/*
-data/yolo_obb/images/val/*
-data/yolo_obb/images/test/*
-data/yolo_obb/labels/train/*
-data/yolo_obb/labels/val/*
-data/yolo_obb/labels/test/*
+data/yolo_obb/images/*
+data/yolo_obb/labels/*
+data/yolo_obb_v2/images/*
+data/yolo_obb_v2/labels/*
+data/yolo_obb_final/images/*
+data/yolo_obb_final/labels/*
 
 # Model Weights & Assets (Never commit heavy binary weights)
 models/*.pt

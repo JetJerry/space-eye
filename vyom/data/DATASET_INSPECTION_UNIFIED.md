@@ -171,3 +171,4 @@ data/unified_obb/
 Please review the proposed class mapping above:
 - **Confirm Option 1 (Core 10-Class Taxonomy)** or request modifications to classes/mappings.
 - Upon your approval, we will proceed to train the detector on this unified real + synthetic dataset or proceed to Prompt 7 (ONNX export, parity verification, and desktop runtime integration).
+

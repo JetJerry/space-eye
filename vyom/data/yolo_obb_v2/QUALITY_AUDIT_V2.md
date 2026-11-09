@@ -157,3 +157,4 @@ Dataset v2 resolves all three major architectural deficiencies identified during
 3. **Perfect Class Balance & Tight Annotations:** Equal distribution across all 5 classes (148 train instances per class) and 100% mathematically valid convex OBB labels ensure stable loss convergence without gradient starvation.
 
 Dataset v2 is fully prepared and validated for an initial YOLOv8-OBB smoke-training experiment in Phase 7.
+

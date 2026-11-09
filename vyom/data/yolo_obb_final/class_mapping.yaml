@@ -1,0 +1,59 @@
+final_classes:
+  0: centrifuge_tube
+  1: tube_rack
+  2: rack_hole
+  3: tube_cap
+  4: pipette
+  5: beaker
+  6: conical_flask
+  7: sample_vial
+  8: multiwell_plate
+  9: rig_slot
+provisional_synthetic_only_classes:
+- sample_vial
+- multiwell_plate
+- rig_slot
+real_world_classes:
+- centrifuge_tube
+- tube_rack
+- rack_hole
+- tube_cap
+- pipette
+- beaker
+- conical_flask
+source_mappings:
+  LabOS:
+    license: CC BY-NC 4.0
+    annotation_type: Derived minimum-area rotated bounding box (from polygon)
+    mapping:
+      3: centrifuge_tube
+      4: tube_cap
+      13: tube_cap
+      14: tube_cap
+      15: tube_cap
+      16: tube_cap
+      17: tube_cap
+      5: tube_rack
+      12: tube_rack
+      6: rack_hole
+      11: rack_hole
+    notes: Rack holes strictly mapped to rack_hole, never rig_slot.
+  ChemEq25:
+    license: CC BY 4.0
+    annotation_type: Derived zero-rotation bounding box (from axis-aligned bounding
+      box)
+    mapping:
+      0: beaker
+      4: conical_flask
+      10: pipette
+      19: tube_rack
+    notes: Uses only verified stem-matching pairs. Weighing_Bottle excluded.
+  Synthetic_v2:
+    license: VYOM Procedural Synthetic
+    annotation_type: Procedural genuine rotated bounding box (from rendered geometry)
+    mapping:
+      0: sample_vial
+      1: pipette
+      2: multiwell_plate
+      3: centrifuge_tube
+      4: rig_slot

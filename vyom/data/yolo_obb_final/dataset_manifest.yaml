@@ -1,0 +1,70 @@
+dataset_name: VYOM Final Unified Laboratory Apparatus Dataset (OBB)
+version: 1.0.0
+taxonomy:
+- centrifuge_tube
+- tube_rack
+- rack_hole
+- tube_cap
+- pipette
+- beaker
+- conical_flask
+- sample_vial
+- multiwell_plate
+- rig_slot
+image_counts:
+  train: 448
+  val: 125
+  test: 18
+total_images: 591
+total_annotations: 3396
+sources:
+  LabOS:
+    images: 193
+    annotations: 2370
+    split_counts:
+      train:
+        rack_hole: 1320
+        centrifuge_tube: 206
+        tube_cap: 305
+        tube_rack: 67
+      val:
+        rack_hole: 258
+        tube_cap: 113
+        centrifuge_tube: 74
+        tube_rack: 27
+      test: {}
+  ChemEq25:
+    images: 98
+    annotations: 107
+    split_counts:
+      train:
+        beaker: 27
+        tube_rack: 11
+        conical_flask: 21
+        pipette: 11
+      val:
+        beaker: 9
+        tube_rack: 4
+        conical_flask: 4
+        pipette: 1
+      test:
+        beaker: 4
+        conical_flask: 1
+        tube_rack: 14
+  Synthetic_v2:
+    images: 300
+    annotations: 919
+    split_counts:
+      train:
+        sample_vial: 148
+        pipette: 148
+        multiwell_plate: 148
+        centrifuge_tube: 148
+        rig_slot: 148
+      val:
+        sample_vial: 36
+        pipette: 36
+        multiwell_plate: 36
+        centrifuge_tube: 36
+        rig_slot: 35
+      test: {}

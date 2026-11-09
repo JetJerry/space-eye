@@ -1,0 +1,17 @@
+# Ultralytics YOLOv8-OBB dataset configuration for VYOM Final Unified Laboratory Apparatus
+path: d:/space_eye/vyom/data/yolo_obb_final
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: centrifuge_tube
+  1: tube_rack
+  2: rack_hole
+  3: tube_cap
+  4: pipette
+  5: beaker
+  6: conical_flask
+  7: sample_vial
+  8: multiwell_plate
+  9: rig_slot
