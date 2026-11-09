@@ -36,6 +36,7 @@ class SessionPanel(QFrame):
     pause_requested = Signal()
     stop_requested = Signal()
     reset_requested = Signal()
+    history_requested = Signal()
     source_changed = Signal(str, object)
     protocol_changed = Signal(str)
     recording_toggled = Signal(bool)
@@ -142,6 +143,14 @@ class SessionPanel(QFrame):
         self.reset_btn = QPushButton("↺  Reset Session")
         self.reset_btn.clicked.connect(self.reset_requested.emit)
         session_layout.addWidget(self.reset_btn)
+
+        self.history_btn = QPushButton("📜  Session Archive & Reports")
+        self.history_btn.setStyleSheet(
+            f"background-color: {BG_CARD}; border: 1px solid {BORDER_SUBTLE}; "
+            f"padding: 6px 10px; font-weight: 600; border-radius: 4px;"
+        )
+        self.history_btn.clicked.connect(self.history_requested.emit)
+        session_layout.addWidget(self.history_btn)
 
         layout.addWidget(session_group)
 

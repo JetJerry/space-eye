@@ -79,3 +79,4 @@ class AlertCooldownTracker:
     def reset(self) -> None:
         """Clear all cooldown history."""
         self._last_emission_times.clear()
+

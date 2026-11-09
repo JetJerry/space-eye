@@ -1,5 +1,6 @@
 """Primary desktop application window for VYOM with OpenCV capture and ArUco rig tracking."""
 
+from vyom.interaction import InteractionEventType
 import collections
 from datetime import datetime
 from pathlib import Path
@@ -49,6 +50,9 @@ from vyom.vision.obb_detector import (
 )
 from vyom.vision.obb_worker import OBBTrackingWorker
 from vyom.alerts import AlertManager, VoiceAlertConfig, VoiceAlertItem
+from vyom.audit.hash_chain import AuditChainLogger
+from vyom.audit.reporter import ExperimentReporter
+from vyom.audit.verifier import verify_audit_chain
 from vyom.interaction.drawing import draw_interaction_overlays
 from vyom.interaction.engine import (
     HandObjectRelationship,
@@ -58,6 +62,9 @@ from vyom.interaction.engine import (
 from vyom.interaction.events import InteractionEvent, InteractionState
 from vyom.interaction.worker import InteractionWorker
 from vyom.protocol import ProcedureEngine, ProtocolDefinition
+from vyom.storage.database import DatabaseManager
+from vyom.storage.session_manager import SessionManager
+from vyom.ui.session_history_dialog import SessionHistoryDialog
 from vyom.vision.observations import PerceptionFrameObservation
 
 logger = get_logger("ui.main_window")
@@ -127,6 +134,15 @@ class VyomMainWindow(QMainWindow):
         voice_cfg = getattr(self.config, "voice_alerts", VoiceAlertConfig())
         self.alert_manager = AlertManager(voice_cfg, self)
         self.alert_manager.start()
+
+        # SQLite Persistent Storage and Hash-Chain Audit Logging (Prompt 11)
+        self.sessions_dir = Path("sessions")
+        self.sessions_dir.mkdir(parents=True, exist_ok=True)
+        self.db_manager = DatabaseManager(self.sessions_dir / "vyom_sessions.db")
+        self.db_manager.initialize()
+        self.session_manager = SessionManager(self.db_manager)
+        self.reporter = ExperimentReporter(output_root=self.sessions_dir)
+        self.audit_logger: Optional[AuditChainLogger] = None
 
         self._init_ui()
         self._init_data()
@@ -286,6 +302,7 @@ class VyomMainWindow(QMainWindow):
         self.session_panel.pause_requested.connect(self._handle_pause_session)
         self.session_panel.stop_requested.connect(self._handle_stop_session)
         self.session_panel.reset_requested.connect(self._handle_reset_session)
+        self.session_panel.history_requested.connect(self._open_session_history_dialog)
         self.session_panel.protocol_changed.connect(self._handle_protocol_selected)
         self.session_panel.source_changed.connect(self._handle_source_changed)
 
@@ -435,11 +452,46 @@ class VyomMainWindow(QMainWindow):
         if source is None:
             return
 
-        self._active_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._active_session_id = self.session_manager.generate_session_id()
+        session_folder = self.sessions_dir / self._active_session_id
+        session_folder.mkdir(parents=True, exist_ok=True)
+
+        proto = self.procedure_engine.protocol
+        if proto:
+            hw_report = self.config_manager.get_hardware_report()
+            self.session_manager.create_session(
+                protocol=proto,
+                camera_source=self._get_current_source_info(),
+                hardware_device=hw_report.active_device_selected,
+                hardware_backend="OpenCV",
+                model_version="smoke_v1",
+                session_id=self._active_session_id,
+            )
+            self.session_manager.start_session(self._active_session_id)
+
+        # Initialize AuditChainLogger for append-only SHA-256 chain
+        self.audit_logger = AuditChainLogger(
+            session_id=self._active_session_id,
+            audit_dir=session_folder,
+            db_manager=self.db_manager,
+        )
+        proto_id = proto.protocol_id if proto else "GENERIC"
+        proto_ver = proto.protocol_version if proto else "1.0"
+        proto_name = proto.experiment_name if proto else "Experiment"
+        self.audit_logger.initialize_genesis(
+            protocol_id=proto_id,
+            protocol_version=proto_ver,
+            experiment_name=proto_name,
+            metadata={
+                "camera_source": self._get_current_source_info(),
+                "device": self.config.inference.device_preference.value,
+            },
+        )
+        self.audit_logger.append_event("SESSION_STARTED", {"session_id": self._active_session_id})
 
         recorder: Optional[SessionRecorder] = None
         if self.session_panel.is_recording_enabled:
-            rec_dir = self.config.storage.sessions_dir / "recordings"
+            rec_dir = session_folder / "recordings"
             recorder = SessionRecorder(
                 output_dir=rec_dir,
                 session_id=self._active_session_id,
@@ -665,10 +717,25 @@ class VyomMainWindow(QMainWindow):
             hash_digest=event.event_id,
         )
 
+        # Prompt 11: Persist interaction event and append to audit chain
+        if self._active_session_id:
+            self.session_manager.record_interaction_event(self._active_session_id, event)
+        if self.audit_logger:
+            self.audit_logger.append_event("INTERACTION_EVENT", {
+                "event_id": event.event_id,
+                "event_type": event.event_type.value,
+                "object_class": event.object_class,
+                "confidence": round(event.interaction_confidence, 3),
+            })
+
         # Prompt 9: Evaluate event against deterministic ProcedureEngine
         prev_step_id = self.procedure_engine.current_step_id
         eval_res = self.procedure_engine.evaluate_event(event)
         self.protocol_panel.update_evaluation_result(eval_res)
+
+        # Prompt 11: Sync evaluation results and step progress to SQLite
+        if self._active_session_id:
+            self.session_manager.sync_evaluation_result(self._active_session_id, eval_res)
 
         # Step progression notification
         if prev_step_id is not None and eval_res.current_step_id != prev_step_id:
@@ -678,6 +745,11 @@ class VyomMainWindow(QMainWindow):
                 description=f"Step Completed: [{prev_step_id}] -> Advancing to [{eval_res.current_step_id or 'FINISH'}]",
                 hash_digest=f"step_complete:{prev_step_id}",
             )
+            if self.audit_logger:
+                self.audit_logger.append_event("STEP_COMPLETED", {
+                    "step_id": prev_step_id,
+                    "next_step_id": eval_res.current_step_id,
+                })
 
         # Full procedure completion notification
         if eval_res.is_success:
@@ -687,6 +759,11 @@ class VyomMainWindow(QMainWindow):
                 description=f"Experiment Procedure Fully Completed: {eval_res.protocol_id}",
                 hash_digest=f"proto_complete:{eval_res.protocol_id}",
             )
+            if self.audit_logger:
+                self.audit_logger.append_event("PROCEDURE_COMPLETED", {
+                    "protocol_id": eval_res.protocol_id,
+                    "completed_steps": eval_res.completed_steps,
+                })
 
         # Log new compliance violations
         for violation in eval_res.new_violations:
@@ -697,6 +774,17 @@ class VyomMainWindow(QMainWindow):
                 description=f"[{violation.violation_type.value}] {violation.explanation}",
                 hash_digest=violation.violation_id,
             )
+            # Prompt 11: Persist violation to SQLite and audit chain
+            if self._active_session_id:
+                self.session_manager.record_violation(self._active_session_id, violation)
+            if self.audit_logger:
+                self.audit_logger.append_event("COMPLIANCE_VIOLATION", {
+                    "violation_id": violation.violation_id,
+                    "violation_type": violation.violation_type.value,
+                    "step_id": violation.step_id,
+                    "severity": violation.severity,
+                    "explanation": violation.explanation,
+                })
 
         # Prompt 10: Dispatch spoken guidance and prioritized offline audio alerts
         self.alert_manager.process_procedure_result(eval_res, self.procedure_engine.protocol)
@@ -766,6 +854,29 @@ class VyomMainWindow(QMainWindow):
             description=f"Recording finalized: {Path(file_path).name} ({total_frames} frames, {duration_s:.1f}s)",
         )
 
+        # Prompt 11: Finalize recording in SQLite with SHA-256 and log to audit chain
+        if self._active_session_id:
+            w = self.config.camera.width
+            h = self.config.camera.height
+            fps = float(self.config.camera.target_fps)
+            rec_row = self.session_manager.finalize_recording(
+                session_id=self._active_session_id,
+                file_path=file_path,
+                total_frames=total_frames,
+                duration_s=duration_s,
+                fps=fps,
+                width=w,
+                height=h,
+            )
+            if self.audit_logger:
+                self.audit_logger.append_event("RECORDING_FINALIZED", {
+                    "recording_id": rec_row.recording_id,
+                    "file_path": rec_row.file_path,
+                    "sha256": rec_row.sha256_checksum,
+                    "total_frames": total_frames,
+                    "duration_s": round(duration_s, 2),
+                })
+
     @Slot()
     def _handle_pause_session(self) -> None:
         if self._capture_worker is None:
@@ -777,6 +888,10 @@ class VyomMainWindow(QMainWindow):
             self.session_panel.set_session_state("PAUSED")
             self.top_bar.set_session_status("PAUSED")
             self.protocol_panel.update_evaluation_result(self.procedure_engine.pause())
+            if self._active_session_id:
+                self.session_manager.pause_session(self._active_session_id)
+            if self.audit_logger:
+                self.audit_logger.append_event("SESSION_PAUSED", {"session_id": self._active_session_id})
             self.event_panel.add_event(
                 severity="WARNING",
                 source="SESSION",
@@ -788,6 +903,10 @@ class VyomMainWindow(QMainWindow):
             self.session_panel.set_session_state("ACTIVE")
             self.top_bar.set_session_status("ACTIVE")
             self.protocol_panel.update_evaluation_result(self.procedure_engine.resume())
+            if self._active_session_id:
+                self.session_manager.resume_session(self._active_session_id)
+            if self.audit_logger:
+                self.audit_logger.append_event("SESSION_RESUMED", {"session_id": self._active_session_id})
             self.event_panel.add_event(
                 severity="INFO",
                 source="SESSION",
@@ -810,9 +929,54 @@ class VyomMainWindow(QMainWindow):
             self.interaction_worker.reset()
 
         self.procedure_engine.stop()
-        self.protocol_panel.update_evaluation_result(self.procedure_engine.get_state())
+        final_state = self.procedure_engine.get_state()
+        self.protocol_panel.update_evaluation_result(final_state)
         if hasattr(self, "alert_manager") and self.alert_manager is not None:
             self.alert_manager.on_session_aborted()
+
+        # Prompt 11: Finalize session in SQLite, verify hash chain, export certification reports
+        if self._active_session_id and self.audit_logger:
+            self.audit_logger.append_event("SESSION_STOPPED", {
+                "session_id": self._active_session_id,
+                "completed": (final_state.status.value == "COMPLETED"),
+            })
+            is_completed = (final_state.status.value == "COMPLETED")
+            self.session_manager.stop_session(
+                session_id=self._active_session_id,
+                is_completed=is_completed,
+                final_digest=self.audit_logger.latest_hash,
+            )
+
+            # Replay and verify cryptographic hash chain
+            records = self.audit_logger.records
+            ver_res = verify_audit_chain(records)
+            self.session_manager.update_audit_status(
+                session_id=self._active_session_id,
+                status=ver_res.status.value,
+                final_digest=ver_res.final_hash,
+            )
+
+            # Generate certification reports package
+            session_rec = self.session_manager.get_session(self._active_session_id)
+            if session_rec:
+                self.reporter.export_all_reports(
+                    session=session_rec,
+                    step_results=self.session_manager.get_step_results(self._active_session_id),
+                    violations=self.session_manager.get_violations(self._active_session_id),
+                    voice_alerts=self.session_manager.get_voice_alerts(self._active_session_id),
+                    recordings=self.session_manager.get_recordings(self._active_session_id),
+                    verification_result=ver_res,
+                )
+
+            self.event_panel.add_event(
+                severity="SUCCESS" if ver_res.is_valid else "CRITICAL",
+                source="AUDIT",
+                description=(
+                    f"Session {self._active_session_id} finalized: {ver_res.status.value} "
+                    f"({ver_res.total_records} records, digest: {ver_res.final_hash[:16]}...)"
+                ),
+                hash_digest=ver_res.final_hash,
+            )
 
         self._last_logged_hand_count = 0
         self._last_logged_obb_count = 0
@@ -890,6 +1054,16 @@ class VyomMainWindow(QMainWindow):
             self.top_bar.set_compute_status(hw_report.active_device_selected, hw_report.device_selection_reason)
             self.event_panel.set_hardware_report(hw_report)
 
+    @Slot()
+    def _open_session_history_dialog(self) -> None:
+        dialog = SessionHistoryDialog(
+            session_manager=self.session_manager,
+            reporter=self.reporter,
+            parent=self,
+            audit_dir=self.sessions_dir,
+        )
+        dialog.exec()
+
     # -------------------------------------------------------------------------
     # Offline Voice Alert Listeners (Prompt 10)
     # -------------------------------------------------------------------------
@@ -906,6 +1080,25 @@ class VyomMainWindow(QMainWindow):
             description=f"Alert queued: '{item.text}' (priority={item.priority_rank})",
             hash_digest=item.alert_id,
         )
+        if self._active_session_id:
+            self.session_manager.record_voice_alert(
+                session_id=self._active_session_id,
+                alert_id=item.alert_id,
+                category=item.category,
+                priority=item.priority,
+                text=item.text,
+                reason=item.reason,
+                event_id=item.event_id,
+                step_id=item.step_id,
+                status="QUEUED",
+            )
+        if self.audit_logger:
+            self.audit_logger.append_event("VOICE_ALERT_QUEUED", {
+                "alert_id": item.alert_id,
+                "category": item.category,
+                "text": item.text,
+                "priority": item.priority,
+            })
 
     @Slot(object)
     def _on_voice_speech_started(self, item: VoiceAlertItem) -> None:
@@ -924,6 +1117,21 @@ class VyomMainWindow(QMainWindow):
             description=f"Alert spoken: '{item.text}'",
             hash_digest=item.alert_id,
         )
+        if self._active_session_id:
+            self.session_manager.record_voice_alert(
+                session_id=self._active_session_id,
+                alert_id=item.alert_id,
+                category=item.category,
+                priority=item.priority,
+                text=item.text,
+                reason=item.reason,
+                status="SPOKEN",
+            )
+        if self.audit_logger:
+            self.audit_logger.append_event("VOICE_ALERT_SPOKEN", {
+                "alert_id": item.alert_id,
+                "text": item.text,
+            })
 
     @Slot(object, str)
     def _on_voice_speech_error(self, item: VoiceAlertItem, err: str) -> None:

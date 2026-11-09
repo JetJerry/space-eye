@@ -241,3 +241,4 @@ class ProcedureRuleEngine:
             consecutive_frames=total_frames,
             explanation=f"Step {step.step_id} criteria fully satisfied by {event.event_type.value}.",
         )
+

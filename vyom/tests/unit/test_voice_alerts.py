@@ -307,3 +307,4 @@ def test_engine_graceful_fallback():
     ok, err = engine.speak("Should fail gracefully")
     assert ok is False
     assert "not initialized" in err.lower()
+

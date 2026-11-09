@@ -90,3 +90,4 @@ def load_protocol_from_file(file_path: Union[str, Path]) -> ProtocolDefinition:
         raise ProtocolLoadError(f"Failed to read protocol file '{path}': {e}") from e
 
     return load_protocol_from_json(content, source_desc=str(path))
+

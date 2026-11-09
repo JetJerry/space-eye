@@ -196,3 +196,4 @@ class OfflineVoiceEngine:
             self._engine = None
         self._is_initialized = False
         logger.info("OfflineVoiceEngine shut down cleanly.")
+

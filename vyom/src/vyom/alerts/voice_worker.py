@@ -277,3 +277,4 @@ class VoiceWorker(QThread):
         self._running = False
         self._interrupt_current_speech()
         self.wait(1500)
+

@@ -329,3 +329,4 @@ class AlertManager(QObject):
         self._announced_completed_steps.clear()
         self._announced_procedure_completed = False
         self.cooldown_tracker.reset()
+

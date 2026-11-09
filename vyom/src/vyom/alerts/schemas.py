@@ -96,3 +96,4 @@ class VoiceAlertItem:
             can_interrupt=can_interrupt,
             severity=severity,
         )
+
