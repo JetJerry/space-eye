@@ -95,3 +95,4 @@ class DiagnosticsDialog(QDialog):
     def closeEvent(self, event) -> None:
         self._timer.stop()
         super().closeEvent(event)
+

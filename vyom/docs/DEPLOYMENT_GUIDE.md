@@ -207,3 +207,4 @@ The verifier will:
 - **No Spaceflight Certification:** This software has not undergone DO-178C or NASA NPR 7150.2 flight-software qualification.
 - **Advisory Role Only:** All alerts and procedural progression decisions are advisory; human operators retain operational authority.
 - **Lighting & Occlusion:** Extreme lighting conditions (glare, deep shadows) or severe hand-object occlusions may reduce detection confidence. In such cases, the engine emits `UNCERTAIN_OBSERVATION` warnings rather than assuming successful step completion.
+

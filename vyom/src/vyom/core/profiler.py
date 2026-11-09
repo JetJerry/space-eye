@@ -222,3 +222,4 @@ def get_performance_profiler() -> SystemPerformanceProfiler:
     if _profiler_instance is None:
         _profiler_instance = SystemPerformanceProfiler()
     return _profiler_instance
+

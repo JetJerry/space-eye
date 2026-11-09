@@ -439,3 +439,4 @@ class SessionReadinessDialog(QDialog):
         btn_layout.addWidget(self.btn_cancel)
 
         layout.addLayout(btn_layout)
+
