@@ -1,0 +1,100 @@
+# ==============================================================================
+# VYOM Repository .gitignore
+# Offline-first procedure compliance and vision monitoring
+# ==============================================================================
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting Artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local Environment & Secrets
+.env
+!.env.example
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Downloaded Datasets (Raw & Processed)
+data/external/*
+!data/external/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+data/annotations/*
+!data/annotations/.gitkeep
+data/yolo_obb/images/train/*
+data/yolo_obb/images/val/*
+data/yolo_obb/images/test/*
+data/yolo_obb/labels/train/*
+data/yolo_obb/labels/val/*
+data/yolo_obb/labels/test/*
+
+# Model Weights & Assets (Never commit heavy binary weights)
+models/*.pt
+models/*.onnx
+models/*.task
+models/*.engine
+models/*.tflite
+models/*.bin
+!models/README.md
+
+# Training Runs & Checkpoints
+runs/*
+!runs/.gitkeep
+
+# Session Recordings, SQLite Databases, and Event Logs
+sessions/*
+!sessions/.gitkeep
+sessions/*.db
+sessions/*.db-journal
+sessions/*.sqlite3
+sessions/recordings/*
+sessions/reports/*
+sessions/audit/*
+
+# Application Logs
+logs/*
+!logs/.gitkeep
+*.log
+

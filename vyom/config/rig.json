@@ -1,0 +1,21 @@
+{
+  "dictionary_name": "DICT_4X4_50",
+  "marker_size_m": 0.05,
+  "origin_marker_id": 0,
+  "marker_ids": [0, 1, 2, 3],
+  "camera_calibration_file": null,
+  "reference_frame": "rig_relative",
+  "rig_landmarks": {
+    "module_slot_a": {
+      "relative_to_marker": 0,
+      "offset_xyz_m": [0.12, 0.05, 0.0]
+    },
+    "tool_holder_1": {
+      "relative_to_marker": 1,
+      "offset_xyz_m": [-0.08, 0.04, 0.0]
+    }
+  },
+  "min_markers_for_calibration": 2,
+  "microgravity_mode": true
+}
+

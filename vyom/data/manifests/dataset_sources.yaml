@@ -1,0 +1,49 @@
+# VYOM Dataset Sources Manifest
+version: "1.0.0"
+
+sources:
+  enigma_360:
+    name: "ENIGMA-360"
+    official_url: "https://fpv-iplab.github.io/ENIGMA-360/"
+    repository: "https://github.com/fpv-iplab/ENIGMA-360"
+    license: "CC BY-NC 4.0"
+    status: "configured_external"
+    configured_path: "D:/space_eye/datasets/ENIGMA-360"
+    selected_view: "exo"
+    selected_splits:
+      - "train"
+      - "val"
+    modalities:
+      - "video"
+      - "hoi_annotations"
+      - "action_segmentation"
+    read_only: true
+
+  enigma_51:
+    name: "ENIGMA-51"
+    official_url: "https://fpv-iplab.github.io/ENIGMA-51/"
+    license: "Research use only (pending full terms inspection)"
+    status: "planned_reference"
+    local_path: "data/external/enigma_51"
+    modalities:
+      - "annotations"
+      - "textual_procedures"
+
+  mendeley_chemical_apparatus:
+    name: "Annotated Chemical Apparatus Image Dataset"
+    official_url: "https://data.mendeley.com/datasets/8p2hvgdvpn/1"
+    doi: "10.17632/8p2hvgdvpn.1"
+    license: "CC BY 4.0"
+    archive_size_gb: 4.50
+    annotation_format: "yolo_axis_aligned"
+    status: "planned_baseline"
+    local_path: "data/external/mendeley_chemical"
+
+  mediapipe_hand_landmarker:
+    name: "MediaPipe Hand Landmarker Task Model"
+    official_url: "https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/python"
+    license: "Apache 2.0"
+    asset_file: "hand_landmarker.task"
+    status: "pre_trained_asset"
+    local_path: "models/hand_landmarker.task"
+

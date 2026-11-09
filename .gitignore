@@ -1,2 +1,118 @@
-.venv
-/datasets
+# ==============================================================================
+# Space Eye / VYOM Root .gitignore
+# Single Unified Repository Configuration
+# ==============================================================================
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Datasets (Local downloads and external mirrors)
+datasets/
+**/data/external/*
+!**/data/external/.gitkeep
+**/data/raw/*
+!**/data/raw/.gitkeep
+**/data/annotations/*
+!**/data/annotations/.gitkeep
+**/data/yolo_obb/images/train/*
+**/data/yolo_obb/images/val/*
+**/data/yolo_obb/images/test/*
+**/data/yolo_obb/labels/train/*
+**/data/yolo_obb/labels/val/*
+**/data/yolo_obb/labels/test/*
+
+# Model Weights & Offline Assets (Do not commit binary weights)
+models/*.pt
+models/*.onnx
+models/*.task
+models/*.engine
+models/*.tflite
+models/*.bin
+vyom/models/*.pt
+vyom/models/*.onnx
+vyom/models/*.task
+vyom/models/*.engine
+vyom/models/*.tflite
+vyom/models/*.bin
+!**/models/README.md
+
+# Python Cache & Bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting Artifacts
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+
+# Training Outputs & Runs
+runs/*
+!runs/.gitkeep
+vyom/runs/*
+!vyom/runs/.gitkeep
+
+# Session Recordings, SQLite Databases, and Event Logs
+sessions/*
+!sessions/.gitkeep
+vyom/sessions/*
+!vyom/sessions/.gitkeep
+*.db
+*.db-journal
+*.sqlite3
+**/sessions/recordings/*
+**/sessions/reports/*
+**/sessions/audit/*
+
+# Application Logs
+logs/*
+!logs/.gitkeep
+vyom/logs/*
+!vyom/logs/.gitkeep
+*.log
+
+# Environment Files
+.env
+!.env.example
+vyom/.env
+!vyom/.env.example
+
+# Operating System & IDE Artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

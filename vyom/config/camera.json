@@ -1,0 +1,18 @@
+{
+  "source_type": "device_index",
+  "device_index": 0,
+  "video_file_path": null,
+  "rtsp_url": null,
+  "width": 1280,
+  "height": 720,
+  "target_fps": 30,
+  "auto_reconnect": true,
+  "reconnect_timeout_seconds": 5.0,
+  "recording": {
+    "enabled": false,
+    "output_dir": "sessions/recordings",
+    "codec": "mp4v",
+    "container": "mp4"
+  }
+}
+
