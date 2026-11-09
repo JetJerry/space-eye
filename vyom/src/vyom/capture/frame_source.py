@@ -69,3 +69,4 @@ class FrameSource(ABC):
     @abstractmethod
     def get_metadata(self) -> SourceMetadata:
         """Retrieve current stream/file metadata."""
+

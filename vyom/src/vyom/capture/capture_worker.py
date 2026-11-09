@@ -188,3 +188,4 @@ class CaptureWorker(QThread):
         self._paused = False
         self.wait(1500)
         logger.info("Capture worker stop requested")
+

@@ -158,3 +158,4 @@ class VideoFileSource(FrameSource):
 
     def get_metadata(self) -> SourceMetadata:
         return self._metadata
+

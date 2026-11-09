@@ -160,3 +160,4 @@ class SessionRecorder:
         self._end_time = None
         self._output_file = None
         return summary
+
