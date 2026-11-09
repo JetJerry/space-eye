@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 import cv2
 import numpy as np
 
@@ -54,6 +54,7 @@ class TrackedObject:
             "center": [round(self.center[0], 2), round(self.center[1], 2)],
             "smoothed_center": [round(self.smoothed_center[0], 2), round(self.smoothed_center[1], 2)],
             "velocity_px_per_s": [round(self.velocity_px_per_s[0], 2), round(self.velocity_px_per_s[1], 2)],
+            "frame_displacement_px": round(self.frame_displacement_px, 2),
             "total_displacement_px": round(self.total_displacement_px, 2),
             "state": self.state,
             "consecutive_hits": self.consecutive_hits,
