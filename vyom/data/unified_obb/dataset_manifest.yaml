@@ -1,0 +1,47 @@
+dataset_name: VYOM Unified Laboratory Apparatus Dataset (OBB)
+version: 1.0.0
+taxonomy_size: 10
+total_images: 623
+total_annotations: 3440
+sources:
+  LabOS:
+    images: 193
+    annotations: 2378
+    license: CC BY-NC 4.0
+    class_counts:
+      rig_slot: 1586
+      centrifuge_tube: 280
+      tube_cap: 418
+      tube_rack: 94
+  ChemEq25:
+    images: 130
+    annotations: 143
+    license: CC BY 4.0
+    class_counts:
+      beaker: 40
+      tube_rack: 29
+      pipette: 22
+      conical_flask: 26
+      sample_vial: 8
+      test_tube: 18
+  Synthetic_v2:
+    images: 300
+    annotations: 919
+    license: VYOM Procedural Synthetic
+    class_counts:
+      sample_vial: 184
+      pipette: 184
+      multiwell_plate: 184
+      centrifuge_tube: 184
+      rig_slot: 183
+class_totals:
+  rig_slot: 1769
+  centrifuge_tube: 464
+  tube_cap: 418
+  tube_rack: 123
+  beaker: 40
+  pipette: 206
+  conical_flask: 26
+  sample_vial: 192
+  test_tube: 18
+  multiwell_plate: 184

@@ -1,0 +1,973 @@
+{
+  "labos": {
+    "name": "LabOS",
+    "location": "D:\\space_eye\\datasets\\LabOS",
+    "license": "CC BY-NC 4.0",
+    "format": "COCO Instance Segmentation & YOLO Polygon",
+    "total_images": 314,
+    "train_images": 251,
+    "val_images": 63,
+    "total_annotations": 3671,
+    "corrupted_images": 0,
+    "image_shapes": [
+      [
+        953,
+        1300,
+        3
+      ],
+      [
+        1080,
+        1539,
+        3
+      ],
+      [
+        480,
+        640,
+        3
+      ],
+      [
+        533,
+        800,
+        3
+      ],
+      [
+        2048,
+        2560,
+        3
+      ],
+      [
+        400,
+        700,
+        3
+      ],
+      [
+        1808,
+        3200,
+        3
+      ],
+      [
+        220,
+        237,
+        3
+      ],
+      [
+        646,
+        861,
+        3
+      ],
+      [
+        600,
+        600,
+        3
+      ],
+      [
+        360,
+        540,
+        3
+      ],
+      [
+        433,
+        650,
+        3
+      ],
+      [
+        185,
+        300,
+        3
+      ],
+      [
+        1200,
+        1920,
+        3
+      ],
+      [
+        448,
+        797,
+        3
+      ],
+      [
+        631,
+        474,
+        3
+      ],
+      [
+        1024,
+        1024,
+        3
+      ],
+      [
+        1580,
+        1200,
+        3
+      ],
+      [
+        259,
+        195,
+        3
+      ],
+      [
+        400,
+        600,
+        3
+      ],
+      [
+        720,
+        1080,
+        3
+      ],
+      [
+        1500,
+        1443,
+        3
+      ],
+      [
+        1132,
+        1552,
+        3
+      ],
+      [
+        386,
+        686,
+        3
+      ],
+      [
+        780,
+        1040,
+        3
+      ],
+      [
+        806,
+        1000,
+        3
+      ],
+      [
+        415,
+        522,
+        3
+      ],
+      [
+        768,
+        1024,
+        3
+      ],
+      [
+        1500,
+        1500,
+        3
+      ],
+      [
+        1080,
+        1920,
+        3
+      ],
+      [
+        384,
+        672,
+        3
+      ],
+      [
+        184,
+        274,
+        3
+      ],
+      [
+        560,
+        840,
+        3
+      ],
+      [
+        243,
+        207,
+        3
+      ],
+      [
+        506,
+        900,
+        3
+      ],
+      [
+        5712,
+        4284,
+        3
+      ],
+      [
+        1600,
+        2400,
+        3
+      ],
+      [
+        958,
+        1300,
+        3
+      ],
+      [
+        1000,
+        1000,
+        3
+      ],
+      [
+        2160,
+        3840,
+        3
+      ],
+      [
+        225,
+        224,
+        3
+      ],
+      [
+        512,
+        512,
+        3
+      ],
+      [
+        1707,
+        2560,
+        3
+      ],
+      [
+        960,
+        720,
+        3
+      ],
+      [
+        300,
+        400,
+        3
+      ],
+      [
+        250,
+        402,
+        3
+      ],
+      [
+        601,
+        1070,
+        3
+      ],
+      [
+        700,
+        700,
+        3
+      ],
+      [
+        1440,
+        1200,
+        3
+      ],
+      [
+        168,
+        300,
+        3
+      ],
+      [
+        3024,
+        3024,
+        3
+      ],
+      [
+        268,
+        414,
+        3
+      ],
+      [
+        449,
+        800,
+        3
+      ],
+      [
+        1000,
+        2000,
+        3
+      ],
+      [
+        443,
+        760,
+        3
+      ],
+      [
+        633,
+        1200,
+        3
+      ],
+      [
+        346,
+        500,
+        3
+      ],
+      [
+        792,
+        1125,
+        3
+      ],
+      [
+        194,
+        259,
+        3
+      ],
+      [
+        1365,
+        2048,
+        3
+      ],
+      [
+        600,
+        580,
+        3
+      ],
+      [
+        480,
+        320,
+        3
+      ],
+      [
+        800,
+        800,
+        3
+      ],
+      [
+        306,
+        342,
+        3
+      ],
+      [
+        180,
+        320,
+        3
+      ],
+      [
+        316,
+        474,
+        3
+      ],
+      [
+        480,
+        480,
+        3
+      ],
+      [
+        251,
+        201,
+        3
+      ],
+      [
+        800,
+        1200,
+        3
+      ],
+      [
+        478,
+        641,
+        3
+      ],
+      [
+        990,
+        1414,
+        3
+      ],
+      [
+        300,
+        300,
+        3
+      ],
+      [
+        474,
+        474,
+        3
+      ],
+      [
+        495,
+        435,
+        3
+      ],
+      [
+        555,
+        1084,
+        3
+      ],
+      [
+        1456,
+        816,
+        3
+      ],
+      [
+        225,
+        225,
+        3
+      ],
+      [
+        1152,
+        1536,
+        3
+      ],
+      [
+        348,
+        474,
+        3
+      ],
+      [
+        270,
+        340,
+        3
+      ],
+      [
+        417,
+        626,
+        3
+      ],
+      [
+        750,
+        750,
+        3
+      ],
+      [
+        259,
+        194,
+        3
+      ],
+      [
+        186,
+        271,
+        3
+      ],
+      [
+        630,
+        1200,
+        3
+      ],
+      [
+        342,
+        342,
+        3
+      ],
+      [
+        3000,
+        2249,
+        3
+      ],
+      [
+        666,
+        1000,
+        3
+      ],
+      [
+        408,
+        612,
+        3
+      ],
+      [
+        392,
+        522,
+        3
+      ],
+      [
+        2048,
+        2048,
+        3
+      ],
+      [
+        450,
+        450,
+        3
+      ],
+      [
+        183,
+        275,
+        3
+      ],
+      [
+        534,
+        800,
+        3
+      ],
+      [
+        752,
+        752,
+        3
+      ],
+      [
+        394,
+        590,
+        3
+      ],
+      [
+        232,
+        500,
+        3
+      ],
+      [
+        1580,
+        2560,
+        3
+      ],
+      [
+        522,
+        522,
+        3
+      ],
+      [
+        599,
+        800,
+        3
+      ],
+      [
+        720,
+        1280,
+        3
+      ]
+    ],
+    "classes": [
+      {
+        "id": 1,
+        "name": "Vortex Genie 2",
+        "train": 83,
+        "val": 25,
+        "total": 108
+      },
+      {
+        "id": 2,
+        "name": "Vortex Genie Hole",
+        "train": 60,
+        "val": 17,
+        "total": 77
+      },
+      {
+        "id": 3,
+        "name": "Vortex Genie Top Plate",
+        "train": 67,
+        "val": 17,
+        "total": 84
+      },
+      {
+        "id": 4,
+        "name": "50ml eppendorf tube",
+        "train": 235,
+        "val": 85,
+        "total": 320
+      },
+      {
+        "id": 5,
+        "name": "50Ml eppendorf cap",
+        "train": 47,
+        "val": 3,
+        "total": 50
+      },
+      {
+        "id": 6,
+        "name": "50Ml 4 way rack",
+        "train": 85,
+        "val": 35,
+        "total": 120
+      },
+      {
+        "id": 7,
+        "name": "4 way rack 50ml hole",
+        "train": 575,
+        "val": 292,
+        "total": 867
+      },
+      {
+        "id": 8,
+        "name": "4 way rack 5ml hole",
+        "train": 0,
+        "val": 0,
+        "total": 0
+      },
+      {
+        "id": 9,
+        "name": "rack 50mL hole",
+        "train": 0,
+        "val": 0,
+        "total": 0
+      },
+      {
+        "id": 10,
+        "name": "50mL rack",
+        "train": 0,
+        "val": 0,
+        "total": 0
+      },
+      {
+        "id": 11,
+        "name": "14ml round bottom tube top",
+        "train": 172,
+        "val": 7,
+        "total": 179
+      },
+      {
+        "id": 12,
+        "name": "14ml rack hole",
+        "train": 1263,
+        "val": 59,
+        "total": 1322
+      },
+      {
+        "id": 13,
+        "name": "14ml rack",
+        "train": 33,
+        "val": 2,
+        "total": 35
+      },
+      {
+        "id": 14,
+        "name": "50Ml eppendorf cap top",
+        "train": 40,
+        "val": 3,
+        "total": 43
+      },
+      {
+        "id": 15,
+        "name": "50Ml eppendorf orange cap top",
+        "train": 106,
+        "val": 37,
+        "total": 143
+      },
+      {
+        "id": 16,
+        "name": "50Ml eppendorf blue cap top",
+        "train": 39,
+        "val": 25,
+        "total": 64
+      },
+      {
+        "id": 17,
+        "name": "50Ml eppendorf orange cap",
+        "train": 135,
+        "val": 44,
+        "total": 179
+      },
+      {
+        "id": 18,
+        "name": "50Ml eppendorf blue cap",
+        "train": 49,
+        "val": 31,
+        "total": 80
+      }
+    ]
+  },
+  "chemeq25": {
+    "name": "ChemEq25",
+    "location": "D:\\space_eye\\datasets\\ChemEq25",
+    "license": "CC BY 4.0",
+    "url": "https://universe.roboflow.com/dip-project-cktfe/chemistry-lab-apparatus-detn/dataset/8",
+    "format": "YOLO Axis-Aligned Bounding Box (5 tokens)",
+    "total_images": 4598,
+    "train_images": 3220,
+    "val_images": 920,
+    "test_images": 458,
+    "total_annotations": 6790,
+    "corrupted_images": 0,
+    "image_shapes": [
+      [
+        640,
+        640,
+        3
+      ]
+    ],
+    "classes": [
+      {
+        "id": 0,
+        "name": "Beaker",
+        "train": 275,
+        "val": 78,
+        "test": 32,
+        "total": 385
+      },
+      {
+        "id": 1,
+        "name": "Buchner_Funnel",
+        "train": 167,
+        "val": 56,
+        "test": 21,
+        "total": 244
+      },
+      {
+        "id": 2,
+        "name": "Burette_Stands",
+        "train": 219,
+        "val": 57,
+        "test": 25,
+        "total": 301
+      },
+      {
+        "id": 3,
+        "name": "Calorimeter",
+        "train": 194,
+        "val": 63,
+        "test": 30,
+        "total": 287
+      },
+      {
+        "id": 4,
+        "name": "Conical_Flask",
+        "train": 319,
+        "val": 78,
+        "test": 44,
+        "total": 441
+      },
+      {
+        "id": 5,
+        "name": "Funnel",
+        "train": 156,
+        "val": 47,
+        "test": 20,
+        "total": 223
+      },
+      {
+        "id": 6,
+        "name": "Glass_Rod",
+        "train": 265,
+        "val": 89,
+        "test": 33,
+        "total": 387
+      },
+      {
+        "id": 7,
+        "name": "Measuring_Cylinder",
+        "train": 135,
+        "val": 49,
+        "test": 18,
+        "total": 202
+      },
+      {
+        "id": 8,
+        "name": "Mechanical_Balance_Scale",
+        "train": 173,
+        "val": 47,
+        "test": 25,
+        "total": 245
+      },
+      {
+        "id": 9,
+        "name": "Nessler_Reagent_Bottle",
+        "train": 160,
+        "val": 51,
+        "test": 31,
+        "total": 242
+      },
+      {
+        "id": 10,
+        "name": "Pipette",
+        "train": 171,
+        "val": 59,
+        "test": 18,
+        "total": 248
+      },
+      {
+        "id": 11,
+        "name": "Porcelain_Mortar Pestle",
+        "train": 169,
+        "val": 60,
+        "test": 37,
+        "total": 266
+      },
+      {
+        "id": 12,
+        "name": "Precision_Weight_Scale",
+        "train": 167,
+        "val": 45,
+        "test": 24,
+        "total": 236
+      },
+      {
+        "id": 13,
+        "name": "Reagent_Bottle",
+        "train": 177,
+        "val": 44,
+        "test": 32,
+        "total": 253
+      },
+      {
+        "id": 14,
+        "name": "Round_Bottom_Flask_Borosilicate_Glass_1_Neck",
+        "train": 241,
+        "val": 72,
+        "test": 42,
+        "total": 355
+      },
+      {
+        "id": 15,
+        "name": "Round_Bottom_Flask_Borosilicate_Glass_2_Neck",
+        "train": 172,
+        "val": 58,
+        "test": 30,
+        "total": 260
+      },
+      {
+        "id": 16,
+        "name": "Round_Bottom_Flask_Borosilicate_Glass_3_Neck",
+        "train": 171,
+        "val": 54,
+        "test": 32,
+        "total": 257
+      },
+      {
+        "id": 17,
+        "name": "Separating_Funnel",
+        "train": 225,
+        "val": 57,
+        "test": 31,
+        "total": 313
+      },
+      {
+        "id": 18,
+        "name": "Spirit_Lamp",
+        "train": 160,
+        "val": 49,
+        "test": 31,
+        "total": 240
+      },
+      {
+        "id": 19,
+        "name": "TestTube_Holder",
+        "train": 190,
+        "val": 39,
+        "test": 20,
+        "total": 249
+      },
+      {
+        "id": 20,
+        "name": "Test_Tube",
+        "train": 181,
+        "val": 42,
+        "test": 27,
+        "total": 250
+      },
+      {
+        "id": 21,
+        "name": "Volumetric_Flask",
+        "train": 156,
+        "val": 43,
+        "test": 12,
+        "total": 211
+      },
+      {
+        "id": 22,
+        "name": "Volumetric_Pipet",
+        "train": 177,
+        "val": 57,
+        "test": 21,
+        "total": 255
+      },
+      {
+        "id": 23,
+        "name": "Wash_Bottle",
+        "train": 137,
+        "val": 34,
+        "test": 31,
+        "total": 202
+      },
+      {
+        "id": 24,
+        "name": "Weighing_Bottle",
+        "train": 159,
+        "val": 48,
+        "test": 31,
+        "total": 238
+      }
+    ]
+  },
+  "enigma360": {
+    "name": "ENIGMA-360",
+    "location": "D:\\space_eye\\datasets\\ENIGMA-360",
+    "license": "Research / Academic Use Only",
+    "format": "Exocentric Third-Person MP4 Videos (672x376 @ 30fps)",
+    "total_videos": 132,
+    "train_videos_count": 103,
+    "val_videos_count": 29,
+    "total_duration_hours": 36.35,
+    "annotation_compatibility": "Third-person exocentric videos provide authentic laboratory workbench backgrounds. HOI instance masks are egocentric Aria glasses (2272x1278) and coarse (hand/object only); they cannot be used directly for third-person exocentric object detection."
+  },
+  "synthetic_v1": {
+    "name": "Synthetic v1 (yolo_obb)",
+    "location": "d:\\space_eye\\vyom\\data\\yolo_obb",
+    "format": "YOLOv8-OBB (9 tokens)",
+    "total_images": 150,
+    "train_images": 120,
+    "val_images": 30,
+    "total_instances": 373,
+    "status": "Historical Baseline Only (Preserved, Do Not Merge)",
+    "limitations": "Simple 2D OpenCV shapes, train/val backgrounds both sampled from video 103 (leakage).",
+    "classes": {
+      "sample_vial": {
+        "train": 58,
+        "val": 13,
+        "total": 71
+      },
+      "pipette": {
+        "train": 60,
+        "val": 18,
+        "total": 78
+      },
+      "multiwell_plate": {
+        "train": 52,
+        "val": 17,
+        "total": 69
+      },
+      "centrifuge_tube": {
+        "train": 63,
+        "val": 14,
+        "total": 77
+      },
+      "rig_slot": {
+        "train": 66,
+        "val": 12,
+        "total": 78
+      }
+    }
+  },
+  "synthetic_v2": {
+    "name": "Synthetic v2 (yolo_obb_v2)",
+    "location": "d:\\space_eye\\vyom\\data\\yolo_obb_v2",
+    "format": "YOLOv8-OBB (9 tokens)",
+    "total_images": 300,
+    "train_images": 240,
+    "val_images": 60,
+    "total_instances": 919,
+    "status": "Preferred Synthetic Dataset",
+    "background_separation": "Strictly disjoint (10 train videos, 6 val videos; 0 overlap)",
+    "rendering": "Multi-layer RGBA procedural shading, specular highlights, liquid menisci, drop shadows, collision checking",
+    "classes": {
+      "train": {
+        "image_count": 240,
+        "source_videos": [
+          "103",
+          "104",
+          "105",
+          "109",
+          "110",
+          "111",
+          "112",
+          "113",
+          "114",
+          "124"
+        ],
+        "class_counts": {
+          "sample_vial": 148,
+          "pipette": 148,
+          "multiwell_plate": 148,
+          "centrifuge_tube": 148,
+          "rig_slot": 148
+        }
+      },
+      "val": {
+        "image_count": 60,
+        "source_videos": [
+          "100",
+          "101",
+          "102",
+          "115",
+          "116",
+          "127"
+        ],
+        "class_counts": {
+          "sample_vial": 36,
+          "pipette": 36,
+          "multiwell_plate": 36,
+          "centrifuge_tube": 36,
+          "rig_slot": 35
+        }
+      }
+    }
+  }
+}
