@@ -357,3 +357,8 @@ class ProcedureEvaluationResult(BaseModel):
     step_states: Dict[str, StepProgress] = Field(default_factory=dict)
     is_success: bool = False
     message: str = ""
+
+    @property
+    def status(self) -> ProtocolLifecycleState:
+        """Compatibility property for protocol lifecycle state."""
+        return self.protocol_state

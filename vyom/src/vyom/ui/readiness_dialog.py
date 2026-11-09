@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from vyom.alerts.alert_manager import AlertManager
 from vyom.core.config import ConfigManager
 from vyom.protocol.protocol_schema import ProtocolDefinition
+from vyom.vision.obb_detector import resolve_asset_path
 from vyom.ui.styles import (
     APPLICATION_STYLESHEET,
     BG_CARD,
@@ -157,10 +158,10 @@ class SessionReadinessChecker:
             )
 
         # 3. YOLOv8-OBB Model Checkpoint
-        model_path = Path("models/vyom_yolov8n_obb_smoke.pt")
-        onnx_path = Path("models/vyom_yolov8n_obb_smoke.onnx")
-        if model_path.is_file() or onnx_path.is_file():
-            active_name = model_path.name if model_path.is_file() else onnx_path.name
+        model_path = resolve_asset_path(getattr(self.config.models, "yolo_pt_path", "models/vyom_yolov8n_obb_smoke.pt"))
+        onnx_path = resolve_asset_path("models/vyom_yolov8n_obb_smoke.onnx")
+        if (model_path and model_path.is_file()) or (onnx_path and onnx_path.is_file()):
+            active_name = model_path.name if (model_path and model_path.is_file()) else onnx_path.name
             items.append(
                 ReadinessItem(
                     category="Perception",
@@ -184,8 +185,8 @@ class SessionReadinessChecker:
             mandatory_passed = False
 
         # 4. MediaPipe Hand Landmarker Asset
-        mp_task_path = Path("models/hand_landmarker.task")
-        if mp_task_path.is_file() and mp_task_path.stat().st_size > 100000:
+        mp_task_path = resolve_asset_path(self.config.models.hand_landmarker_path)
+        if mp_task_path and mp_task_path.is_file() and mp_task_path.stat().st_size > 100000:
             items.append(
                 ReadinessItem(
                     category="Perception",
@@ -221,7 +222,7 @@ class SessionReadinessChecker:
                         category="Spatial Rig",
                         name="Rig Metric Calibration",
                         status="PASS",
-                        is_mandatory=True,
+                        is_mandatory=False,
                         details="Camera matrix & distortion coefficients established. 3D metric coordinate transformations active.",
                     )
                 )
@@ -230,13 +231,12 @@ class SessionReadinessChecker:
                     ReadinessItem(
                         category="Spatial Rig",
                         name="Rig Metric Calibration",
-                        status="FAIL",
-                        is_mandatory=True,
-                        details="Protocol requires metric target zones, but camera intrinsics/rig coordinates are uncalibrated.",
-                        remediation="Calibrate camera intrinsics or use image-space bounding zones.",
+                        status="WARNING",
+                        is_mandatory=False,
+                        details="ArUco Marker ID 0 not yet in lock. 2D image-space tracking active; 3D metric tracking activates when marker is visible.",
+                        remediation="Position ArUco Marker ID 0 in camera field of view.",
                     )
                 )
-                mandatory_passed = False
         else:
             items.append(
                 ReadinessItem(

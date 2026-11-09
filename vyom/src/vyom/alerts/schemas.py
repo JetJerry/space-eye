@@ -68,6 +68,14 @@ class VoiceAlertItem:
     can_interrupt: bool = field(compare=False, default=False)
     severity: str = field(compare=False, default="warning")  # "info", "warning", "critical"
 
+    @property
+    def priority(self) -> VoiceAlertPriority:
+        """Expose typed VoiceAlertPriority from priority_rank."""
+        try:
+            return VoiceAlertPriority(self.priority_rank)
+        except Exception:
+            return VoiceAlertPriority.LOW
+
     @classmethod
     def create(
         cls,

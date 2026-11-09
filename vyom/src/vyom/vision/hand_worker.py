@@ -55,6 +55,14 @@ class HandTrackingWorker(QThread):
     def is_initialized(self) -> bool:
         return self.tracker.is_initialized
 
+    @property
+    def is_ready(self) -> bool:
+        return self.tracker.is_initialized
+
+    @property
+    def status(self) -> HandTrackingStatus:
+        return HandTrackingStatus.SEARCHING if self.tracker.is_initialized else HandTrackingStatus.NOT_INITIALIZED
+
     def initialize(self) -> Tuple[bool, HandTrackingStatus, Optional[str]]:
         """Initialize underlying MediaPipe HandLandmarker."""
         success, status, err = self.tracker.initialize()

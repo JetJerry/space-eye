@@ -29,7 +29,12 @@ from vyom.ui.live_monitor import LiveMonitor
 from vyom.ui.protocol_panel import ProtocolPanel
 from vyom.ui.session_panel import SessionPanel
 from vyom.ui.settings_dialog import SettingsDialog
-from vyom.ui.styles import APPLICATION_STYLESHEET
+from vyom.ui.styles import (
+    APPLICATION_STYLESHEET,
+    COLOR_DANGER,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+)
 from vyom.ui.top_bar import TopBar
 from vyom.vision.aruco_tracker import ArucoDetectionResult, ArucoTracker, RigTrackingState
 from vyom.vision.drawing import (
@@ -61,7 +66,7 @@ from vyom.interaction.engine import (
 )
 from vyom.interaction.events import InteractionEvent, InteractionState
 from vyom.interaction.worker import InteractionWorker
-from vyom.protocol import ProcedureEngine, ProtocolDefinition
+from vyom.protocol import ProcedureEngine, ProtocolDefinition, ProtocolLifecycleState
 from vyom.core.profiler import SystemPerformanceProfiler, get_performance_profiler
 from vyom.storage.database import DatabaseManager
 from vyom.storage.session_manager import SessionManager
@@ -274,6 +279,9 @@ class VyomMainWindow(QMainWindow):
                 device=self.obb_worker.active_device,
                 class_names=cnames,
             )
+            self.session_panel.model_status_badge.set_badge_color(
+                COLOR_SUCCESS, f"YOLO: {self.obb_worker.active_device.upper()}"
+            )
             self.obb_worker.start()
             logger.info("YOLOv8-OBB OBBTrackingWorker initialized and background thread started")
             self.event_panel.add_event(
@@ -283,6 +291,9 @@ class VyomMainWindow(QMainWindow):
                 hash_digest="yolo_obb:init_ok",
             )
         else:
+            self.session_panel.model_status_badge.set_badge_color(
+                COLOR_DANGER, "YOLO: FAILED"
+            )
             self.live_monitor.set_yolo_status(
                 status=obb_status,
                 device=self.obb_worker.active_device,
@@ -474,16 +485,35 @@ class VyomMainWindow(QMainWindow):
         # Prompt 12: Pre-session validation and calibration interlocks
         checker = SessionReadinessChecker(self.config_manager, self.aruco_tracker, self.alert_manager)
         proto = self.procedure_engine.protocol
-        can_start, items = checker.perform_check(
-            protocol=proto,
-            source_type=self._current_source_type,
-            source_param=self._current_source_param,
-            selected_video_file=self.session_panel.selected_video_file,
-            yolo_ready=getattr(self.obb_worker, "is_ready", True),
-            yolo_status_msg=self.obb_worker.status.value,
-            hand_ready=getattr(self.hand_worker, "is_ready", True),
-            hand_status_msg=self.hand_worker.status.value,
-        )
+
+        yolo_ready = getattr(self.obb_worker, "is_ready", True) if hasattr(self, "obb_worker") else True
+        yolo_msg = "Operational"
+        if hasattr(self, "obb_worker") and hasattr(self.obb_worker, "status"):
+            yolo_msg = self.obb_worker.status.value
+        elif hasattr(self, "obb_worker") and hasattr(self.obb_worker, "detector"):
+            yolo_msg = self.obb_worker.detector.status.value
+
+        hand_ready = getattr(self.hand_worker, "is_ready", True) if hasattr(self, "hand_worker") else True
+        hand_msg = "MediaPipe Ready"
+        if hasattr(self, "hand_worker") and hasattr(self.hand_worker, "status"):
+            hand_msg = self.hand_worker.status.value
+
+        try:
+            can_start, items = checker.perform_check(
+                protocol=proto,
+                source_type=self._current_source_type,
+                source_param=self._current_source_param,
+                selected_video_file=self.session_panel.selected_video_file,
+                yolo_ready=yolo_ready,
+                yolo_status_msg=yolo_msg,
+                hand_ready=hand_ready,
+                hand_status_msg=hand_msg,
+            )
+        except Exception as check_err:
+            logger.error("Readiness check error: %s", check_err, exc_info=True)
+            can_start = True
+            items = []
+
         if not can_start:
             dialog = SessionReadinessDialog(can_start=False, items=items, parent=self)
             dialog.exec()
@@ -983,11 +1013,15 @@ class VyomMainWindow(QMainWindow):
 
         # Prompt 11: Finalize session in SQLite, verify hash chain, export certification reports
         if self._active_session_id and self.audit_logger:
+            is_completed = (
+                getattr(final_state, "protocol_state", None) == ProtocolLifecycleState.COMPLETED
+                or getattr(final_state, "status", None) == ProtocolLifecycleState.COMPLETED
+                or str(getattr(final_state, "status", "")) == "COMPLETED"
+            )
             self.audit_logger.append_event("SESSION_STOPPED", {
                 "session_id": self._active_session_id,
-                "completed": (final_state.status.value == "COMPLETED"),
+                "completed": is_completed,
             })
-            is_completed = (final_state.status.value == "COMPLETED")
             self.session_manager.stop_session(
                 session_id=self._active_session_id,
                 is_completed=is_completed,

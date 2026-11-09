@@ -1,0 +1,81 @@
+{
+  "protocol_id": "chem-pipetting-01",
+  "protocol_version": "1.1.0",
+  "experiment_name": "Reagent Pipetting & Solution Transfer",
+  "description": "Standard operating procedure for aspirating reagent from a beaker and dispensing into a conical flask.",
+  "strict_order": true,
+  "alert_cooldown_seconds": 2.5,
+  "steps": [
+    {
+      "step_id": "P_STEP_01",
+      "order": 1,
+      "title": "Acquire pipette",
+      "instruction": "Grasp the micropipette from the instrument holster.",
+      "expected_event": "PICKUP_CANDIDATE",
+      "required_objects": [
+        "pipette"
+      ],
+      "min_confidence": 0.8,
+      "stable_duration_ms": 500,
+      "timeout_seconds": 45,
+      "severity": "warning",
+      "voice_message": "Step one. Please pick up the pipette."
+    },
+    {
+      "step_id": "P_STEP_02",
+      "order": 2,
+      "title": "Position pipette over beaker",
+      "instruction": "Lower pipette tip into beaker to aspirate reagent solution.",
+      "expected_event": "OBJECT_MOVEMENT",
+      "required_objects": [
+        "pipette",
+        "beaker"
+      ],
+      "preconditions": [
+        "P_STEP_01"
+      ],
+      "min_confidence": 0.75,
+      "stable_duration_ms": 400,
+      "timeout_seconds": 60,
+      "severity": "warning",
+      "voice_message": "Position the pipette tip inside the reagent beaker."
+    },
+    {
+      "step_id": "P_STEP_03",
+      "order": 3,
+      "title": "Transfer solution to conical flask",
+      "instruction": "Dispense solution into target conical flask.",
+      "expected_event": "PLACEMENT_CANDIDATE",
+      "required_objects": [
+        "pipette",
+        "conical_flask"
+      ],
+      "preconditions": [
+        "P_STEP_02"
+      ],
+      "min_confidence": 0.75,
+      "stable_duration_ms": 600,
+      "timeout_seconds": 60,
+      "severity": "critical",
+      "voice_message": "Dispense the solution carefully into the conical flask."
+    },
+    {
+      "step_id": "P_STEP_04",
+      "order": 4,
+      "title": "Return pipette to holster",
+      "instruction": "Return pipette to holster and release grip.",
+      "expected_event": "RELEASE_CANDIDATE",
+      "required_objects": [
+        "pipette"
+      ],
+      "preconditions": [
+        "P_STEP_03"
+      ],
+      "min_confidence": 0.7,
+      "stable_duration_ms": 400,
+      "timeout_seconds": 30,
+      "severity": "warning",
+      "voice_message": "Return the pipette to its holder and release."
+    }
+  ]
+}

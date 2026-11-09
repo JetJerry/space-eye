@@ -60,6 +60,14 @@ class OBBTrackingWorker(QThread):
         return self.detector.is_initialized
 
     @property
+    def is_ready(self) -> bool:
+        return self.detector.is_initialized
+
+    @property
+    def status(self) -> OBBDetectorStatus:
+        return self.detector.status
+
+    @property
     def active_device(self) -> str:
         return self.detector.active_device
 
