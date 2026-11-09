@@ -1,7 +1,9 @@
 """Primary desktop application window for VYOM with OpenCV capture and ArUco rig tracking."""
 
+import collections
 from datetime import datetime
 from pathlib import Path
+import time
 from typing import Any, Optional, Tuple
 import numpy as np
 from PySide6.QtCore import Qt, Slot
@@ -29,7 +31,13 @@ from vyom.ui.settings_dialog import SettingsDialog
 from vyom.ui.styles import APPLICATION_STYLESHEET
 from vyom.ui.top_bar import TopBar
 from vyom.vision.aruco_tracker import ArucoDetectionResult, ArucoTracker, RigTrackingState
-from vyom.vision.drawing import draw_aruco_overlays
+from vyom.vision.drawing import draw_aruco_overlays, draw_hand_overlays
+from vyom.vision.hand_tracker import (
+    HandTrackerConfig,
+    HandTrackingResult,
+    HandTrackingStatus,
+)
+from vyom.vision.hand_worker import HandTrackingWorker
 
 logger = get_logger("ui.main_window")
 
@@ -59,6 +67,19 @@ class VyomMainWindow(QMainWindow):
         self.aruco_tracker = ArucoTracker(self.config.rig)
         self._last_logged_aruco_state: Optional[RigTrackingState] = None
 
+        # MediaPipe Hand Tracking Subsystem (Off GUI Thread)
+        hand_cfg = HandTrackerConfig(
+            model_path=self.config.models.hand_landmarker_path,
+            num_hands=2,
+            min_detection_confidence=0.5,
+            min_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            running_mode="VIDEO",
+        )
+        self.hand_worker = HandTrackingWorker(hand_cfg, self)
+        self._last_logged_hand_count: int = 0
+        self._hand_fps_history = collections.deque(maxlen=20)
+
         self._init_ui()
         self._init_data()
         self._connect_signals()
@@ -66,7 +87,7 @@ class VyomMainWindow(QMainWindow):
         # Check for pre-existing downloaded ENIGMA-360 videos for easy 1-click loading
         self._check_initial_dataset_video()
 
-        logger.info("VyomMainWindow initialized with ArUco tracking subsystem")
+        logger.info("VyomMainWindow initialized with ArUco and MediaPipe hand tracking subsystems")
 
     def _init_ui(self) -> None:
         """Construct the mission control desktop layout."""
@@ -146,6 +167,22 @@ class VyomMainWindow(QMainWindow):
         self.event_panel.set_subsystem_statuses(camera_connected=False)
         self.live_monitor.set_aruco_tracking_status(RigTrackingState.NOT_INITIALIZED, 0)
 
+        # Initialize MediaPipe Hand Tracking worker
+        success, status, err = self.hand_worker.initialize()
+        if success:
+            self.live_monitor.set_hand_tracking_status(HandTrackingStatus.SEARCHING)
+            self.hand_worker.start()
+            logger.info("MediaPipe HandTrackingWorker initialized and background thread started")
+        else:
+            self.live_monitor.set_hand_tracking_status(status)
+            if err:
+                self.event_panel.add_event(
+                    severity="WARNING",
+                    source="MEDIAPIPE",
+                    description=err,
+                    hash_digest="mediapipe:init_warning",
+                )
+
     def _check_initial_dataset_video(self) -> None:
         """Pre-populate file selector with first available ENIGMA-360 exocentric video if present."""
         enigma_dir = self.config.datasets.enigma360_path
@@ -168,6 +205,9 @@ class VyomMainWindow(QMainWindow):
         self.session_panel.protocol_changed.connect(self._handle_protocol_selected)
         self.session_panel.source_changed.connect(self._handle_source_changed)
 
+        # Wire MediaPipe Hand Tracking Worker output
+        self.hand_worker.hand_result_ready.connect(self._on_hand_result_ready)
+
     # ==========================================================================
     # Background Vision Processing Pipeline (Off GUI Thread)
     # ==========================================================================
@@ -178,11 +218,17 @@ class VyomMainWindow(QMainWindow):
         timestamp_s: float,
         frame_idx: int,
     ) -> Tuple[np.ndarray, Any]:
-        """Runs inside CaptureWorker QThread to process frame and render ArUco overlays."""
-        # 1. Detect ArUco fiducials and compute rig reference
+        """Runs inside CaptureWorker QThread to process frame and render ArUco and Hand overlays."""
+        # 1. Asynchronously submit frame to HandTrackingWorker (non-blocking latest-frame queue)
+        self.hand_worker.submit_frame(frame_bgr, timestamp_s, frame_idx)
+
+        # 2. Detect ArUco fiducials and compute rig reference
         detection_result = self.aruco_tracker.detect(frame_bgr, timestamp_s)
 
-        # 2. Draw annotations and 3D axes (if calibrated) onto preview frame
+        # 3. Retrieve freshest non-stale hand tracking result (<= 200ms latency)
+        hand_result = self.hand_worker.get_latest_result(max_age_s=0.200)
+
+        # 4. Draw ArUco fiducials and 3D axes (if calibrated) onto preview frame
         calib = self.aruco_tracker.rig_coords.calibration if self.aruco_tracker.rig_coords.is_calibrated else None
         cam_mtx = calib.camera_matrix if calib else None
         dist_coef = calib.dist_coeffs if calib else None
@@ -195,7 +241,17 @@ class VyomMainWindow(QMainWindow):
             axis_length_m=self.aruco_tracker.marker_size_m * 0.8,
         )
 
-        return annotated_bgr, detection_result
+        # 5. Draw Hand Landmark overlays (coexists with ArUco overlays)
+        if hand_result is not None and hand_result.has_hands:
+            annotated_bgr = draw_hand_overlays(
+                annotated_bgr,
+                hand_result,
+                draw_connections=True,
+                draw_landmarks=True,
+                draw_handedness_pill=True,
+            )
+
+        return annotated_bgr, (detection_result, hand_result)
 
     # ==========================================================================
     # Video Capture Worker Management
@@ -291,41 +347,95 @@ class VyomMainWindow(QMainWindow):
     @Slot(object)
     def _on_vision_result_ready(self, result: object) -> None:
         """Handle perception detection result emitted from background worker."""
-        if not isinstance(result, ArucoDetectionResult):
+        aruco_res = None
+        if isinstance(result, tuple) and len(result) >= 1:
+            aruco_res = result[0]
+        elif isinstance(result, ArucoDetectionResult):
+            aruco_res = result
+
+        if not isinstance(aruco_res, ArucoDetectionResult):
             return
 
         # 1. Update Monitor ArUco badge
         self.live_monitor.set_aruco_tracking_status(
-            state=result.state,
-            configured_count=len(result.configured_ids_visible),
+            state=aruco_res.state,
+            configured_count=len(aruco_res.configured_ids_visible),
             total_configured=len(self.aruco_tracker.configured_marker_ids),
         )
 
         # 2. Update Event Panel ArUco indicator
-        self.event_panel.set_aruco_status(result)
+        self.event_panel.set_aruco_status(aruco_res)
 
         # 3. Log state changes to audit timeline (without spamming every frame)
-        if result.state != self._last_logged_aruco_state:
-            self._last_logged_aruco_state = result.state
-            if result.state == RigTrackingState.RIG_TRACKING:
+        if aruco_res.state != self._last_logged_aruco_state:
+            self._last_logged_aruco_state = aruco_res.state
+            if aruco_res.state == RigTrackingState.RIG_TRACKING:
                 self.event_panel.add_event(
                     severity="INFO",
                     source="ARUCO",
-                    description=f"Rig workspace reference established. Origin marker ID {self.aruco_tracker.origin_marker_id} visible (Active IDs: {result.configured_ids_visible}).",
+                    description=f"Rig workspace reference established. Origin marker ID {self.aruco_tracker.origin_marker_id} visible (Active IDs: {aruco_res.configured_ids_visible}).",
                     hash_digest="aruco:rig_tracking",
                 )
-            elif result.state == RigTrackingState.CALIBRATION_REQUIRED:
+            elif aruco_res.state == RigTrackingState.CALIBRATION_REQUIRED:
                 self.event_panel.add_event(
                     severity="WARNING",
                     source="ARUCO",
-                    description=f"ArUco marker IDs {result.configured_ids_visible} detected. 2D pixels tracked; 3D metric coordinates unavailable (camera calibration required).",
+                    description=f"ArUco marker IDs {aruco_res.configured_ids_visible} detected. 2D pixels tracked; 3D metric coordinates unavailable (camera calibration required).",
                     hash_digest="aruco:uncalibrated",
                 )
-            elif result.state == RigTrackingState.SEARCHING:
+            elif aruco_res.state == RigTrackingState.SEARCHING:
                 self.event_panel.add_event(
                     severity="INFO",
                     source="ARUCO",
                     description="ArUco fiducials not currently in view. Searching for DICT_4X4_50...",
+                )
+
+    @Slot(object)
+    def _on_hand_result_ready(self, result: object) -> None:
+        """Handle MediaPipe hand tracking result emitted from background HandTrackingWorker."""
+        if not isinstance(result, HandTrackingResult):
+            return
+
+        # 1. Compute Hand Tracking FPS
+        now = time.monotonic()
+        self._hand_fps_history.append(now)
+        fps = 0.0
+        if len(self._hand_fps_history) >= 2:
+            dur = self._hand_fps_history[-1] - self._hand_fps_history[0]
+            if dur > 0.001:
+                fps = (len(self._hand_fps_history) - 1) / dur
+
+        # 2. Update Live Monitor badge
+        handedness_labels = [f"{h.handedness} ({h.confidence:.0%})" for h in result.hands]
+        total_lms = sum(len(h.landmarks) for h in result.hands)
+        self.live_monitor.set_hand_tracking_status(
+            status=result.status,
+            hand_count=result.hand_count,
+            handedness_labels=handedness_labels,
+            landmark_count=total_lms,
+            processing_fps=fps,
+            latency_ms=result.latency_ms,
+        )
+
+        # 3. Update Event Panel status label
+        self.event_panel.set_hand_tracking_status(result)
+
+        # 4. Log hand presence state transitions to audit timeline
+        if result.hand_count != self._last_logged_hand_count:
+            self._last_logged_hand_count = result.hand_count
+            if result.hand_count > 0:
+                self.event_panel.add_event(
+                    severity="INFO",
+                    source="HAND_TRACKER",
+                    description=f"Hand detected: {', '.join(handedness_labels)} with 21 landmarks each (latency: {result.latency_ms:.1f}ms).",
+                    hash_digest="hand:detected",
+                )
+            else:
+                self.event_panel.add_event(
+                    severity="INFO",
+                    source="HAND_TRACKER",
+                    description="Hand(s) exited camera view.",
+                    hash_digest="hand:cleared",
                 )
 
     @Slot(str, int, int, float)
@@ -425,11 +535,16 @@ class VyomMainWindow(QMainWindow):
             self._capture_worker.stop_capture()
             self._capture_worker = None
 
+        if hasattr(self, "hand_worker") and self.hand_worker is not None:
+            self.hand_worker.reset()
+
+        self._last_logged_hand_count = 0
         self._session_state = "IDLE"
         self.session_panel.set_session_state("IDLE")
         self.top_bar.set_session_status("IDLE")
         self.live_monitor.set_recording_status(False)
         self.live_monitor.set_camera_status(False, self._get_current_source_info())
+        self.live_monitor.set_hand_tracking_status(HandTrackingStatus.SEARCHING)
         self.event_panel.set_subsystem_statuses(camera_connected=False)
 
     @Slot()
@@ -492,9 +607,14 @@ class VyomMainWindow(QMainWindow):
             self.event_panel.set_hardware_report(hw_report)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Ensure capture worker thread and recording are stopped cleanly before window destruction."""
+        """Ensure capture worker thread, hand tracking worker, and recording are stopped cleanly."""
         if self._capture_worker is not None:
             logger.info("Stopping capture worker during application shutdown")
             self._capture_worker.stop_capture()
             self._capture_worker = None
+
+        if hasattr(self, "hand_worker") and self.hand_worker is not None:
+            logger.info("Stopping hand tracking worker during application shutdown")
+            self.hand_worker.stop()
+
         event.accept()

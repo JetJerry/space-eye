@@ -1,5 +1,8 @@
 """Live monitor component displaying real-time video frames and perception overlays."""
 
+from __future__ import annotations
+
+from typing import List, Optional
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QFont, QImage, QPaintEvent, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
@@ -23,6 +26,7 @@ from vyom.ui.styles import (
     TEXT_PRIMARY,
 )
 from vyom.vision.aruco_tracker import RigTrackingState
+from vyom.vision.hand_tracker import HandTrackingResult, HandTrackingStatus
 
 
 class VideoViewport(QWidget):
@@ -217,6 +221,43 @@ class LiveMonitor(QFrame):
             self.aruco_overlay_badge.set_badge_color(COLOR_ACCENT, "ARUCO: SEARCHING")
         else:
             self.aruco_overlay_badge.set_badge_color("#65768d", "ARUCO: NOT INITIALIZED")
+
+    def set_hand_tracking_status(
+        self,
+        status: HandTrackingStatus | str,
+        hand_count: int = 0,
+        handedness_labels: Optional[List[str]] = None,
+        landmark_count: int = 0,
+        processing_fps: float = 0.0,
+        latency_ms: float = 0.0,
+    ) -> None:
+        """Update hand tracking badge according to Prompt 5 status requirements."""
+        status_val = status.value if isinstance(status, HandTrackingStatus) else str(status)
+
+        if "MODEL MISSING" in status_val:
+            self.mediapipe_overlay_badge.set_badge_color(COLOR_DANGER, "HAND TRACKING: MODEL MISSING")
+        elif "NOT INITIALIZED" in status_val:
+            self.mediapipe_overlay_badge.set_badge_color("#65768d", "HAND TRACKING: NOT INITIALIZED")
+        elif "ERROR" in status_val:
+            self.mediapipe_overlay_badge.set_badge_color(COLOR_DANGER, "HAND TRACKING: ERROR")
+        elif hand_count > 0:
+            labels_str = " + ".join(handedness_labels) if handedness_labels else "Hand"
+            txt = f"HANDS: {hand_count} DETECTED ({labels_str} | {landmark_count} LMs)"
+            if processing_fps > 0:
+                txt += f" | {processing_fps:.0f} FPS"
+            self.mediapipe_overlay_badge.set_badge_color(COLOR_SUCCESS, txt)
+        elif "NO HAND DETECTED" in status_val:
+            txt = "HAND TRACKING: NO HAND DETECTED"
+            if processing_fps > 0:
+                txt += f" | {processing_fps:.0f} FPS"
+            self.mediapipe_overlay_badge.set_badge_color(COLOR_ACCENT, txt)
+        elif "SEARCHING" in status_val:
+            self.mediapipe_overlay_badge.set_badge_color(COLOR_ACCENT, "HAND TRACKING: SEARCHING")
+        else:
+            self.mediapipe_overlay_badge.set_badge_color("#65768d", status_val)
+
+        if latency_ms > 0:
+            self.latency_label.setText(f"Vision Latency: {latency_ms:.1f} ms")
 
     def update_frame_qimage(self, qimg: QImage, frame_idx: int = 0, timestamp_s: float = 0.0) -> None:
         """Display newly acquired frame from QImage."""

@@ -1,5 +1,7 @@
 """Bottom panel rendering timestamped event timelines and subsystem status."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -26,6 +28,7 @@ from vyom.ui.styles import (
     TEXT_PRIMARY,
 )
 from vyom.vision.aruco_tracker import ArucoDetectionResult, RigTrackingState
+from vyom.vision.hand_tracker import HandTrackingResult, HandTrackingStatus
 
 
 class EventPanel(QFrame):
@@ -193,6 +196,30 @@ class EventPanel(QFrame):
         else:
             self.aruco_status_lbl.setText("ArUco: NOT INITIALIZED")
             self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
+
+    def set_hand_tracking_status(self, result: HandTrackingResult) -> None:
+        """Update MediaPipe status label in the subsystem diagnostics strip."""
+        if result.status == HandTrackingStatus.MODEL_MISSING:
+            self.hands_status_lbl.setText("MediaPipe: MODEL MISSING")
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #f85149; font-weight: 600;")
+        elif result.status == HandTrackingStatus.ERROR:
+            self.hands_status_lbl.setText(f"MediaPipe: ERROR ({result.error_message or 'inference'})")
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #f85149; font-weight: 600;")
+        elif result.has_hands:
+            labels = [f"{h.handedness} ({h.confidence:.0%})" for h in result.hands]
+            total_lms = sum(len(h.landmarks) for h in result.hands)
+            txt = f"MediaPipe: {result.hand_count} Hand(s) [{', '.join(labels)} | {total_lms} LMs | {result.latency_ms:.1f}ms]"
+            self.hands_status_lbl.setText(txt)
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #2ea043; font-weight: 600;")
+        elif result.status == HandTrackingStatus.NO_HAND_DETECTED:
+            self.hands_status_lbl.setText(f"MediaPipe: NO HANDS [{result.latency_ms:.1f}ms]")
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6; font-weight: 600;")
+        elif result.status == HandTrackingStatus.SEARCHING:
+            self.hands_status_lbl.setText("MediaPipe: SEARCHING")
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6; font-weight: 600;")
+        else:
+            self.hands_status_lbl.setText("MediaPipe: NOT INITIALIZED")
+            self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
 
     def set_hardware_report(self, report: HardwareReport) -> None:
         """Render the 4-tier hardware status distinguishing physical GPU from execution provider."""
