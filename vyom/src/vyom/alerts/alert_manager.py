@@ -88,6 +88,16 @@ class AlertManager(QObject):
             self.worker.stop()
             logger.info("AlertManager voice worker thread stopped")
 
+    def is_engine_available(self) -> bool:
+        """Check if speech synthesis worker and audio backend are available."""
+        return self.worker is not None and self.config.enabled
+
+    def get_active_voice_name(self) -> str:
+        """Query active SAPI5 voice name or default description."""
+        if not self.config.enabled:
+            return "Muted"
+        return self.config.voice_id or "Default Windows Voice"
+
     @Slot(object)
     def _on_speech_started(self, item: VoiceAlertItem) -> None:
         self._last_spoken_text = item.text
@@ -120,6 +130,28 @@ class AlertManager(QObject):
             text="Procedure stopped.",
             priority=VoiceAlertPriority.HIGH,
             reason="Session stopped by operator",
+            can_interrupt=True,
+        )
+
+    def on_step_started(self, step_id: str, title: str) -> None:
+        """Announce an active procedure step starting."""
+        self._dispatch_alert(
+            category=AlertCategory.STEP_INSTRUCTION,
+            text=f"Step {step_id}: {title}",
+            priority=VoiceAlertPriority.MEDIUM,
+            step_id=step_id,
+            reason=f"Step {step_id} initiated",
+        )
+
+    def on_out_of_order_attempt(self, attempted_step_id: str, required_step_id: str) -> None:
+        """Dispatch immediate out-of-order warning alert."""
+        text = f"Warning: Attempted step {attempted_step_id} before completing step {required_step_id}."
+        self._dispatch_alert(
+            category=AlertCategory.OUT_OF_ORDER,
+            text=text,
+            priority=VoiceAlertPriority.CRITICAL,
+            step_id=attempted_step_id,
+            reason="Out-of-order procedure attempt",
             can_interrupt=True,
         )
 

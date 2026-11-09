@@ -38,8 +38,21 @@ from vyom.core.schemas import (
 logger = get_logger("core.config")
 
 
+import sys
+
 def find_project_root(start_path: Optional[Path] = None) -> Path:
     """Detect the VYOM repository root directory by locating pyproject.toml or config/."""
+    # Check if running as packaged PyInstaller frozen binary
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        if (exe_dir / "config").exists():
+            return exe_dir
+        if hasattr(sys, "_MEIPASS"):
+            meipass = Path(sys._MEIPASS).resolve()
+            if (meipass / "config").exists():
+                return meipass
+        return exe_dir
+
     current = (start_path or Path.cwd()).resolve()
 
     # Search current directory and parent directories
@@ -119,39 +132,35 @@ class HardwareDetector:
             Tuple of (runtime_installed: str, cuda_provider_available: bool, provider_name: Optional[str])
         """
         runtime_desc = "None (No inference runtime loaded)"
-        cuda_provider_available = False
-        provider_name = None
+        onnx_desc = None
 
         # 1. Check ONNX Runtime (Deployment Inference Engine)
         try:
             import onnxruntime as ort  # type: ignore
 
             ver = getattr(ort, "__version__", "unknown")
-            runtime_desc = f"ONNX Runtime {ver}"
+            onnx_desc = f"ONNX Runtime {ver}"
             providers = ort.get_available_providers()
             if "CUDAExecutionProvider" in providers:
-                cuda_provider_available = True
-                provider_name = "CUDAExecutionProvider"
+                return onnx_desc, True, "CUDAExecutionProvider"
             elif "DmlExecutionProvider" in providers:
-                provider_name = "DmlExecutionProvider"
-            return runtime_desc, cuda_provider_available, provider_name
+                return onnx_desc, True, "DmlExecutionProvider"
         except ImportError:
             pass
 
-        # 2. Check PyTorch (Training / Validation Engine)
+        # 2. Check PyTorch (Training / Active CUDA Engine)
         try:
             import torch  # type: ignore
 
             ver = getattr(torch, "__version__", "unknown")
-            runtime_desc = f"PyTorch {ver}"
+            torch_desc = f"PyTorch {ver}"
             if torch.cuda.is_available():
-                cuda_provider_available = True
-                provider_name = "torch.cuda"
-            return runtime_desc, cuda_provider_available, provider_name
+                return torch_desc, True, "torch.cuda"
+            return (onnx_desc or torch_desc), False, None
         except ImportError:
             pass
 
-        return runtime_desc, False, None
+        return onnx_desc or runtime_desc, False, None
 
     @classmethod
     def generate_report(

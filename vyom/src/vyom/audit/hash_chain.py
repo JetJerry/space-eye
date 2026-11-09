@@ -253,3 +253,4 @@ class AuditChainLogger:
                 logger.error("Failed to persist audit record to SQLite: %s", e)
                 # JSONL is primary on-disk audit trail; raise to ensure caller detects write failure
                 raise
+

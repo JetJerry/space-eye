@@ -45,13 +45,13 @@ class InteractionEvent:
     event_type: InteractionEventType
     frame_id: int
     timestamp_s: float
-    hand_id: str                      # "hand_0", "hand_1"
-    handedness: str                   # "Right" or "Left"
     object_track_id: str              # e.g., "pipette_track_1"
     object_class: str                 # e.g., "pipette", "beaker"
-    detection_confidence: float       # Object detector confidence [0.0, 1.0]
     interaction_confidence: float     # Temporal-geometric evidence confidence [0.0, 1.0]
-    supporting_evidence: Dict[str, Any]  # Distances, velocities, duration, etc.
+    hand_id: str = "hand_0"           # "hand_0", "hand_1"
+    handedness: str = "Right"         # "Right" or "Left"
+    detection_confidence: float = 1.0 # Object detector confidence [0.0, 1.0]
+    supporting_evidence: Dict[str, Any] = field(default_factory=dict)  # Distances, velocities, duration, etc.
     coordinate_system: str = "IMAGE_PIXEL"  # "IMAGE_PIXEL" or "RIG_METRIC"
     calibration_status: bool = False
     rig_position: Optional[Tuple[float, float, float]] = None

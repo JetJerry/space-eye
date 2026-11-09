@@ -218,6 +218,62 @@ class SessionManager:
             )
             return cur.rowcount > 0
 
+    def recover_interrupted_sessions(self) -> List[str]:
+        """Detect and safely transition any orphaned sessions left in ACTIVE or PAUSED state."""
+        now_utc = datetime.now(timezone.utc).isoformat()
+        recovered_ids: List[str] = []
+        with self.db.connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT session_id, start_time_utc FROM sessions
+                WHERE status IN ('ACTIVE', 'PAUSED') AND end_time_utc IS NULL;
+                """
+            )
+            rows = cur.fetchall()
+            for r in rows:
+                sid = r["session_id"]
+                recovered_ids.append(sid)
+                # Compute duration up to last recorded event or update
+                last_cur = conn.execute(
+                    "SELECT MAX(timestamp_s) FROM interaction_events WHERE session_id = ?;",
+                    (sid,),
+                )
+                last_row = last_cur.fetchone()
+                dur = float(last_row[0]) if (last_row and last_row[0] is not None) else 0.0
+
+                # Get latest hash if available
+                hash_cur = conn.execute(
+                    "SELECT current_hash FROM audit_chain_records WHERE session_id = ? ORDER BY sequence_num DESC LIMIT 1;",
+                    (sid,),
+                )
+                hash_row = hash_cur.fetchone()
+                latest_h = hash_row[0] if hash_row else None
+
+                conn.execute(
+                    """
+                    UPDATE sessions
+                    SET status = 'INTERRUPTED', end_time_utc = ?, duration_s = ?,
+                        final_chain_digest = COALESCE(?, final_chain_digest),
+                        audit_status = 'INTERRUPTED', updated_at = ?
+                    WHERE session_id = ?;
+                    """,
+                    (now_utc, dur, latest_h, now_utc, sid),
+                )
+                conn.execute(
+                    """
+                    UPDATE protocol_executions
+                    SET is_success = 0, completed_at = ?
+                    WHERE session_id = ?;
+                    """,
+                    (now_utc, sid),
+                )
+                logger.warning(
+                    "Recovered interrupted session '%s'. Status set to INTERRUPTED (Duration: %.1fs)",
+                    sid,
+                    dur,
+                )
+        return recovered_ids
+
     def get_session(self, session_id: str) -> Optional[SessionRecord]:
         """Query full metadata record for a session."""
         with self.db.connection() as conn:

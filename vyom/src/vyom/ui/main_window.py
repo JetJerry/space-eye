@@ -62,8 +62,11 @@ from vyom.interaction.engine import (
 from vyom.interaction.events import InteractionEvent, InteractionState
 from vyom.interaction.worker import InteractionWorker
 from vyom.protocol import ProcedureEngine, ProtocolDefinition
+from vyom.core.profiler import SystemPerformanceProfiler, get_performance_profiler
 from vyom.storage.database import DatabaseManager
 from vyom.storage.session_manager import SessionManager
+from vyom.ui.diagnostics_dialog import DiagnosticsDialog
+from vyom.ui.readiness_dialog import SessionReadinessChecker, SessionReadinessDialog
 from vyom.ui.session_history_dialog import SessionHistoryDialog
 from vyom.vision.observations import PerceptionFrameObservation
 
@@ -144,6 +147,9 @@ class VyomMainWindow(QMainWindow):
         self.reporter = ExperimentReporter(output_root=self.sessions_dir)
         self.audit_logger: Optional[AuditChainLogger] = None
 
+        # System Performance Profiler & Runtime Telemetry (Prompt 12)
+        self.profiler = get_performance_profiler()
+
         self._init_ui()
         self._init_data()
         self._connect_signals()
@@ -208,6 +214,16 @@ class VyomMainWindow(QMainWindow):
         hw_report = self.config_manager.get_hardware_report()
         self.top_bar.set_compute_status(hw_report.active_device_selected, hw_report.device_selection_reason)
         self.event_panel.set_hardware_report(hw_report)
+
+        # Recover any orphaned sessions from unexpected shutdowns or power loss (Prompt 12)
+        recovered = self.session_manager.recover_interrupted_sessions()
+        if recovered:
+            self.event_panel.add_event(
+                severity="WARNING",
+                source="STORAGE",
+                description=f"Recovered {len(recovered)} interrupted session(s) from prior runs ({', '.join(recovered[:2])}).",
+                hash_digest="session:recovery",
+            )
 
         protocols_dir = self.config.protocols_dir
         protocol_files = []
@@ -297,6 +313,7 @@ class VyomMainWindow(QMainWindow):
     def _connect_signals(self) -> None:
         """Wire UI events across panels using Qt signals and slots."""
         self.top_bar.settings_clicked.connect(self._open_settings_dialog)
+        self.top_bar.diagnostics_clicked.connect(self._open_diagnostics_dialog)
 
         self.session_panel.start_requested.connect(self._handle_start_session)
         self.session_panel.pause_requested.connect(self._handle_pause_session)
@@ -342,7 +359,9 @@ class VyomMainWindow(QMainWindow):
         self.obb_worker.submit_frame(frame_bgr, timestamp_s, frame_idx)
 
         # 3. Detect ArUco fiducials and compute rig reference
+        t_ar_0 = time.perf_counter()
         detection_result = self.aruco_tracker.detect(frame_bgr, timestamp_s)
+        self.profiler.record_subsystem_latency("aruco", (time.perf_counter() - t_ar_0) * 1000.0)
 
         # 4. Retrieve freshest non-stale hand tracking result (<= 200ms latency)
         hand_result = self.hand_worker.get_latest_result(max_age_s=0.200)
@@ -452,6 +471,24 @@ class VyomMainWindow(QMainWindow):
         if source is None:
             return
 
+        # Prompt 12: Pre-session validation and calibration interlocks
+        checker = SessionReadinessChecker(self.config_manager, self.aruco_tracker, self.alert_manager)
+        proto = self.procedure_engine.protocol
+        can_start, items = checker.perform_check(
+            protocol=proto,
+            source_type=self._current_source_type,
+            source_param=self._current_source_param,
+            selected_video_file=self.session_panel.selected_video_file,
+            yolo_ready=getattr(self.obb_worker, "is_ready", True),
+            yolo_status_msg=self.obb_worker.status.value,
+            hand_ready=getattr(self.hand_worker, "is_ready", True),
+            hand_status_msg=self.hand_worker.status.value,
+        )
+        if not can_start:
+            dialog = SessionReadinessDialog(can_start=False, items=items, parent=self)
+            dialog.exec()
+            return
+
         self._active_session_id = self.session_manager.generate_session_id()
         session_folder = self.sessions_dir / self._active_session_id
         session_folder.mkdir(parents=True, exist_ok=True)
@@ -541,6 +578,7 @@ class VyomMainWindow(QMainWindow):
     def _on_frame_ready(self, qimg: QImage, frame_idx: int, timestamp_s: float) -> None:
         """Handle incoming frame from worker thread and render to viewport."""
         self.live_monitor.update_frame_qimage(qimg, frame_idx, timestamp_s)
+        self.profiler.record_capture_frame(timestamp_s)
 
     @Slot(object)
     def _on_vision_result_ready(self, result: object) -> None:
@@ -619,6 +657,7 @@ class VyomMainWindow(QMainWindow):
 
         # 3. Update Event Panel status label
         self.event_panel.set_hand_tracking_status(result)
+        self.profiler.record_subsystem_latency("hand", result.latency_ms)
 
         # 4. Log hand presence state transitions to audit timeline
         if result.hand_count != self._last_logged_hand_count:
@@ -646,6 +685,7 @@ class VyomMainWindow(QMainWindow):
 
         fps = self.obb_worker.measured_fps
         cnames = list(self.obb_worker.detector.class_names.values())
+        self.profiler.record_subsystem_latency("yolo", result.inference_time_ms, provider=result.device_used)
 
         # 1. Update Live Monitor YOLO overlay badge
         self.live_monitor.set_yolo_status(
@@ -698,6 +738,8 @@ class VyomMainWindow(QMainWindow):
             self.live_monitor.set_interaction_badge("INTERACTION: IDLE", color="#65768d")
             self.event_panel.set_interaction_status(f"IDLE ({len(result.tracked_objects)} tracked objs)", active=False)
 
+        self.profiler.record_subsystem_latency("interaction", result.processing_time_ms)
+
     @Slot(object)
     def _on_interaction_event_emitted(self, event: object) -> None:
         """Handle discrete temporal interaction event, update compliance state, and append to audit timeline."""
@@ -728,9 +770,14 @@ class VyomMainWindow(QMainWindow):
                 "confidence": round(event.interaction_confidence, 3),
             })
 
+        # Prompt 12: Profiler end-to-end freshness from video frame capture
+        self.profiler.record_end_to_end_freshness(event.timestamp_s)
+
         # Prompt 9: Evaluate event against deterministic ProcedureEngine
+        t_proc_0 = time.perf_counter()
         prev_step_id = self.procedure_engine.current_step_id
         eval_res = self.procedure_engine.evaluate_event(event)
+        self.profiler.record_subsystem_latency("procedure", (time.perf_counter() - t_proc_0) * 1000.0)
         self.protocol_panel.update_evaluation_result(eval_res)
 
         # Prompt 11: Sync evaluation results and step progress to SQLite
@@ -1062,6 +1109,11 @@ class VyomMainWindow(QMainWindow):
             parent=self,
             audit_dir=self.sessions_dir,
         )
+        dialog.exec()
+
+    @Slot()
+    def _open_diagnostics_dialog(self) -> None:
+        dialog = DiagnosticsDialog(self.profiler, parent=self)
         dialog.exec()
 
     # -------------------------------------------------------------------------

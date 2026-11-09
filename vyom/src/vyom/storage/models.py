@@ -87,3 +87,4 @@ class RecordingRecord:
             "height": self.height,
             "created_at": self.created_at,
         }
+

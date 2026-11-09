@@ -11,9 +11,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
 import json
+import os
 from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+# Strictly prohibit runtime automatic package installations
+os.environ["YOLO_AUTOINSTALL"] = "0"
+
 import cv2
 import numpy as np
 import torch
@@ -312,7 +317,22 @@ class YOLOOBBDetector:
             except Exception as e:
                 logger.warning("Could not read metadata file %s: %s", meta_path, e)
 
-        # 5. Load model checkpoint into Ultralytics YOLO
+        # 5. Check ONNX CUDA compatibility before loading
+        if model_path.suffix.lower() == ".onnx" and self._active_device.startswith("cuda"):
+            try:
+                import onnxruntime
+                if "CUDAExecutionProvider" not in onnxruntime.get_available_providers():
+                    logger.warning(
+                        "ONNX checkpoint loaded on CUDA system, but ONNX Runtime CUDAExecutionProvider "
+                        "is not installed. Falling back to CPU provider to preserve offline operation."
+                    )
+                    self._active_device = "cpu"
+                    self._fallback_occurred = True
+            except Exception:
+                self._active_device = "cpu"
+                self._fallback_occurred = True
+
+        # 6. Load model checkpoint into Ultralytics YOLO
         try:
             self._status = OBBDetectorStatus.LOADING
             self._model = YOLO(str(model_path), task="obb")
@@ -392,17 +412,57 @@ class YOLOOBBDetector:
             self._last_latency_ms = inference_ms
             self._total_inferences += 1
         except Exception as e:
-            logger.error("Inference execution failed on %s: %s", self._active_device, e)
-            self._status = OBBDetectorStatus.ERROR
-            self._status_message = f"Inference failure: {e}"
-            return OBBFrameDetections(
-                frame_id=frame_id,
-                timestamp_s=timestamp_s,
-                detections=[],
-                inference_time_ms=(time.perf_counter() - t0) * 1000.0,
-                device_used=self._active_device,
-                frame_shape=(h, w),
-            )
+            # Handle GPU out-of-memory error gracefully with automatic CPU fallback
+            err_str = str(e).lower()
+            if ("out of memory" in err_str or "cuda" in err_str) and self._active_device != "cpu":
+                logger.warning(
+                    "CUDA inference error or VRAM exhaustion on %s: %s. Initiating graceful CPU fallback.",
+                    self._active_device,
+                    e,
+                )
+                try:
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
+                self._active_device = "cpu"
+                self._fallback_occurred = True
+                try:
+                    results = self._model.predict(
+                        source=frame_bgr,
+                        imgsz=self.config.imgsz,
+                        conf=self.config.conf_threshold,
+                        iou=self.config.iou_threshold,
+                        device="cpu",
+                        max_det=self.config.max_detections,
+                        verbose=False,
+                    )
+                    inference_ms = (time.perf_counter() - t0) * 1000.0
+                    self._last_latency_ms = inference_ms
+                    self._total_inferences += 1
+                except Exception as retry_err:
+                    logger.error("CPU fallback inference also failed: %s", retry_err)
+                    self._status = OBBDetectorStatus.ERROR
+                    self._status_message = f"CPU fallback failed: {retry_err}"
+                    return OBBFrameDetections(
+                        frame_id=frame_id,
+                        timestamp_s=timestamp_s,
+                        detections=[],
+                        inference_time_ms=(time.perf_counter() - t0) * 1000.0,
+                        device_used="cpu",
+                        frame_shape=(h, w),
+                    )
+            else:
+                logger.error("Inference execution failed on %s: %s", self._active_device, e)
+                self._status = OBBDetectorStatus.ERROR
+                self._status_message = f"Inference failure: {e}"
+                return OBBFrameDetections(
+                    frame_id=frame_id,
+                    timestamp_s=timestamp_s,
+                    detections=[],
+                    inference_time_ms=(time.perf_counter() - t0) * 1000.0,
+                    device_used=self._active_device,
+                    frame_shape=(h, w),
+                )
 
         detections: List[OBBDetection] = []
         if results and len(results) > 0 and hasattr(results[0], "obb") and results[0].obb is not None:
@@ -490,4 +550,9 @@ class YOLOOBBDetector:
             torch.cuda.empty_cache()
         self._status = OBBDetectorStatus.READY
         self._status_message = "Detector closed"
+
+
+# Alias for backward-compatible and alternate naming conventions
+OBBDetector = YOLOOBBDetector
+
 

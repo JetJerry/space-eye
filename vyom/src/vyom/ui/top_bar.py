@@ -29,6 +29,7 @@ class TopBar(QFrame):
     """Header bar displaying system branding, security badges, hardware compute mode, and settings."""
 
     settings_clicked = Signal()
+    diagnostics_clicked = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -81,6 +82,12 @@ class TopBar(QFrame):
         # 4. Voice Alert Status Badge (Prompt 10)
         self.voice_badge = StatusBadge("VOICE: READY", color=COLOR_SUCCESS)
         layout.addWidget(self.voice_badge)
+
+        # Diagnostics Button
+        self.diag_btn = QPushButton("📊 Diagnostics")
+        self.diag_btn.setCursor(Qt.PointingHandCursor)
+        self.diag_btn.clicked.connect(self.diagnostics_clicked.emit)
+        layout.addWidget(self.diag_btn)
 
         # Settings Button
         self.settings_btn = QPushButton("⚙ Settings")

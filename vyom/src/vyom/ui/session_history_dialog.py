@@ -480,3 +480,4 @@ class SessionHistoryDialog(QDialog):
             btn.clicked.connect(dialog.accept)
             d_layout.addWidget(btn)
             dialog.exec()
+

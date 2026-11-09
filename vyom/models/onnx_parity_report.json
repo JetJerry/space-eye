@@ -1,0 +1,37 @@
+{
+  "export_timestamp_utc": "2026-11-09T16:43:20Z",
+  "pt_model": "vyom_yolov8n_obb_smoke.pt",
+  "onnx_model": "vyom_yolov8n_obb_smoke.onnx",
+  "pt_size_bytes": 6399953,
+  "onnx_size_bytes": 12470783,
+  "classes": {
+    "0": "centrifuge_tube",
+    "1": "tube_rack",
+    "2": "rack_hole",
+    "3": "tube_cap",
+    "4": "pipette",
+    "5": "beaker",
+    "6": "conical_flask",
+    "7": "sample_vial",
+    "8": "multiwell_plate",
+    "9": "rig_slot"
+  },
+  "parity_summary": {
+    "is_parity_acceptable": true,
+    "count_parity_met": true,
+    "confidence_parity_met": true,
+    "coordinate_parity_met": true,
+    "tested_images_count": 5,
+    "total_pt_detections": 13,
+    "total_onnx_detections": 13,
+    "matched_detections": 13,
+    "mean_confidence_diff": 0.01325,
+    "max_confidence_diff": 0.05904,
+    "mean_center_pixel_displacement": 0.224,
+    "max_center_pixel_displacement": 1.336,
+    "mean_angle_diff_deg": 0.02,
+    "mean_pt_latency_ms": 666.91,
+    "mean_onnx_latency_ms": 140.09
+  },
+  "deployment_recommendation": "ONNX prediction parity meets precision thresholds. Both PyTorch (.pt) and ONNX (.onnx) are compatible. PyTorch (.pt) remains supported for direct CUDA/GPU acceleration with Torch 2.5, while ONNX provides lightweight runtime deployment."
+}

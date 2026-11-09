@@ -316,3 +316,4 @@ def export_audit_manifest(
 
     logger.info("Exported audit manifest for session '%s' to '%s'", session_id, manifest_path)
     return manifest_data
+

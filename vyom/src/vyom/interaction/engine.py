@@ -236,6 +236,9 @@ class InteractionEngine:
             has_rig_calibration=is_calibrated,
         )
 
+    # Alias for API compatibility
+    process_frame = process_observation
+
     def _update_relationship_state(
         self,
         rel: HandObjectRelationship,
