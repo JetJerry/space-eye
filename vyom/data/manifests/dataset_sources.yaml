@@ -1,49 +1,102 @@
 # VYOM Dataset Sources Manifest
-version: "1.0.0"
+# Records provenance, licensing, verified archive sizes, split selections, and local paths.
+version: "1.1.0"
+last_updated: "2026-11-09"
 
 sources:
   enigma_360:
-    name: "ENIGMA-360"
+    name: "ENIGMA-360 Exocentric Procedural Dataset"
     official_url: "https://fpv-iplab.github.io/ENIGMA-360/"
     repository: "https://github.com/fpv-iplab/ENIGMA-360"
     license: "CC BY-NC 4.0"
-    status: "configured_external"
+    citation: "ENIGMA-360: A Benchmark for 360-degree Human-Object Interaction and Action Segmentation"
+    status: "verified_external"
     configured_path: "D:/space_eye/datasets/ENIGMA-360"
-    selected_view: "exo"
+    selected_view: "exo (third_person.mp4)"
+    resolution: "672x376 @ 30.0 FPS"
+    total_duration_hours: 36.35
+    total_frames: 3926209
     selected_splits:
-      - "train"
-      - "val"
-    modalities:
-      - "video"
-      - "hoi_annotations"
-      - "action_segmentation"
+      train: "103/103 completed (100%)"
+      val: "25/29 completed (active background download PID 16792)"
+      test: "0/48 (deferred)"
+    annotation_status:
+      raw_json: "180 procedural action clips (temporal timestamps only)"
+      taxonomy: "68 procedural action classes"
+      hoi: "COCO format 2272x1278 egocentric masks (2 classes: hand, object); perspective mismatched with exocentric camera"
     read_only: true
 
   enigma_51:
-    name: "ENIGMA-51"
+    name: "ENIGMA-51 Industrial Maintenance Dataset"
     official_url: "https://fpv-iplab.github.io/ENIGMA-51/"
-    license: "Research use only (pending full terms inspection)"
-    status: "planned_reference"
+    license: "Research use only (license terms to be confirmed before redistribution)"
+    citation: "ENIGMA-51: Towards Egocentric Procedural Action Understanding"
+    status: "deferred_reference"
     local_path: "data/external/enigma_51"
     modalities:
       - "annotations"
       - "textual_procedures"
+    notes: "Egocentric electrical board repair actions; candidate for procedural interaction rules."
 
   mendeley_chemical_apparatus:
     name: "Annotated Chemical Apparatus Image Dataset"
     official_url: "https://data.mendeley.com/datasets/8p2hvgdvpn/1"
     doi: "10.17632/8p2hvgdvpn.1"
     license: "CC BY 4.0"
-    archive_size_gb: 4.50
-    annotation_format: "yolo_axis_aligned"
-    status: "planned_baseline"
+    citation: "Annotated Chemical Apparatus Image Dataset for Object Detection"
+    verified_archive_size_gb: 4.50
+    image_count: 5078
+    classes:
+      - "hand"
+      - "beaker"
+      - "conical_flask"
+      - "flask"
+      - "funnel"
+      - "measuring_cylinder"
+      - "test_tube"
+    annotation_format: "yolo_axis_aligned (horizontal bounding boxes)"
+    status: "approval_pending"
     local_path: "data/external/mendeley_chemical"
+    notes: "Requires 4.50 GB disk space; multi-gigabyte download requires user confirmation before acquisition. Labels are axis-aligned, not genuine OBB."
+
+  physics_lab_equipment:
+    name: "Physics Lab Equipment Image Dataset"
+    official_url: "https://doi.org/10.6084/m9.figshare.30984658.v1"
+    doi: "10.6084/m9.figshare.30984658.v1"
+    license: "CC BY 4.0"
+    image_count: 5121
+    classes_count: 27
+    annotation_format: "yolo_txt"
+    status: "catalog_inspected"
+    local_path: "data/external/physics_lab"
+    notes: "Catalog record verified; archive contents to be inspected prior to selective download."
 
   mediapipe_hand_landmarker:
-    name: "MediaPipe Hand Landmarker Task Model"
-    official_url: "https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/python"
+    name: "Google MediaPipe Hand Landmarker Task Model"
+    official_url: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task"
     license: "Apache 2.0"
-    asset_file: "hand_landmarker.task"
-    status: "pre_trained_asset"
+    asset_file: "models/hand_landmarker.task"
+    sha256: "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+    file_size_bytes: 7819105
+    status: "installed_and_verified"
     local_path: "models/hand_landmarker.task"
 
+  vyom_synthetic_demo_obb:
+    name: "VYOM Synthetic Demo Apparatus OBB Dataset"
+    generator_script: "scripts/generate_synthetic_obb_dataset.py"
+    license: "Internal Project Prototype License"
+    status: "generated_and_validated"
+    local_path: "data/yolo_obb"
+    total_images: 150
+    split:
+      train: 120
+      val: 30
+    annotation_format: "yolov8_obb (class_id x1 y1 x2 y2 x3 y3 x4 y4)"
+    classes:
+      0: "sample_vial"
+      1: "pipette"
+      2: "multiwell_plate"
+      3: "centrifuge_tube"
+      4: "rig_slot"
+    rotation_angles: "0 to 360 degrees (96% genuine rotated OBB)"
+    backgrounds: "Extracted from real ENIGMA-360 exocentric laboratory video frames"

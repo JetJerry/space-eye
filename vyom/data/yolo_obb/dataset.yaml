@@ -1,0 +1,12 @@
+# Ultralytics YOLOv8-OBB dataset configuration for VYOM demo apparatus
+path: D:/space_eye/vyom/data/yolo_obb
+train: images/train
+val: images/val
+test: images/val
+
+names:
+  0: sample_vial
+  1: pipette
+  2: multiwell_plate
+  3: centrifuge_tube
+  4: rig_slot

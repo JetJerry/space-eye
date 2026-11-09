@@ -16,7 +16,7 @@
   "models": {
     "models_dir": "models",
     "object_detector_path": "models/object_detector.onnx",
-    "yolo_pt_path": "models/yolov8_obb.pt",
+    "yolo_pt_path": "models/yolov8_obb_best.pt",
     "hand_landmarker_path": "models/hand_landmarker.task",
     "verify_checksums": true
   },

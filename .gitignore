@@ -27,6 +27,12 @@ datasets/
 **/data/yolo_obb/labels/test/*
 
 # Model Weights & Offline Assets (Do not commit binary weights)
+*.pt
+*.onnx
+*.task
+*.engine
+*.tflite
+*.bin
 models/*.pt
 models/*.onnx
 models/*.task
@@ -48,6 +54,8 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.cache
+**/*.cache
 build/
 develop-eggs/
 dist/

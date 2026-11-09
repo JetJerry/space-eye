@@ -1,0 +1,39 @@
+{
+  "model_name": "YOLOv8n-OBB (Fine-Tuned)",
+  "task": "Oriented Bounding Box (OBB) Detection",
+  "output_checkpoint": "D:\\space_eye\\vyom\\models\\yolov8_obb_best.pt",
+  "sha256": "014f3dcf79ac591b4243944c1bab961025468c8c33dfb98890428d059a7ccc63",
+  "base_pretrained": "yolov8n-obb.pt",
+  "dataset_yaml": "d:\\space_eye\\vyom\\data\\yolo_obb\\dataset.yaml",
+  "num_classes": 5,
+  "class_names": {
+    "0": "sample_vial",
+    "1": "pipette",
+    "2": "multiwell_plate",
+    "3": "centrifuge_tube",
+    "4": "rig_slot"
+  },
+  "training_hardware": {
+    "pytorch_version": "2.5.1+cu121",
+    "cuda_available": true,
+    "device_name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_total_mb": 4095
+  },
+  "training_time_seconds": 54.1,
+  "epochs_trained": 5,
+  "batch_size": 4,
+  "metrics": {
+    "precision": 0.6844,
+    "recall": 0.746,
+    "mAP50": 0.7879,
+    "mAP50_95": 0.7129,
+    "per_class_mAP50": {
+      "sample_vial": 0.4708,
+      "pipette": 0.6881,
+      "multiwell_plate": 0.9087,
+      "centrifuge_tube": 0.502,
+      "rig_slot": 0.995
+    }
+  },
+  "notes": "Model fine-tuned on synthetic/procedural demo apparatus dataset with genuine rotated 4-corner bounding boxes. Classes represent generic prototype apparatus and are distinct from flight ISRO spacecraft racks."
+}
