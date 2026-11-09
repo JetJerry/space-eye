@@ -1,4 +1,4 @@
-"""VYOM Application runtime coordinator and foundation manager."""
+"""VYOM Application runtime coordinator and desktop launcher."""
 
 import argparse
 import sys
@@ -13,13 +13,13 @@ logger = get_logger("app")
 
 
 class VyomApplication:
-    """Manages application lifecycle, configuration, hardware inspection, and subsystem coordination."""
+    """Manages application lifecycle, configuration, hardware inspection, and desktop launch."""
 
     def __init__(self, project_root: Path | None = None) -> None:
         self.config_manager: ConfigManager = get_config_manager(project_root=project_root)
         self.config = self.config_manager.config
 
-        # Initialize logging according to configuration
+        # Initialize structured logging
         setup_logging(
             log_level=self.config.logging.log_level,
             log_dir=self.config.logging.log_dir,
@@ -31,8 +31,8 @@ class VyomApplication:
         )
 
     def get_system_status(self) -> Dict[str, Any]:
-        """Perform comprehensive system readiness check for the VYOM foundation."""
-        active_device, provider_desc = self.config_manager.resolve_inference_device()
+        """Perform comprehensive system readiness check distinguishing GPU detection from execution providers."""
+        hw_report = self.config_manager.get_hardware_report()
         enigma_info = self.config_manager.validate_enigma360_dataset()
 
         # Check default protocol
@@ -57,12 +57,15 @@ class VyomApplication:
             "version": self.config.version,
             "environment": self.config.environment,
             "offline_mode": self.config.offline_mode,
-            "inference": {
-                "preference": self.config.inference.device_preference.value,
-                "active_device": active_device,
-                "provider": provider_desc,
-                "gpu_backend": self.config.inference.gpu_backend.value,
-                "cpu_fallback_allowed": self.config.inference.allow_cpu_fallback,
+            "hardware_report": {
+                "physical_gpu_detected": hw_report.gpu_hardware_detected,
+                "gpu_name": hw_report.gpu_name,
+                "gpu_vram_mb": hw_report.gpu_vram_mb,
+                "inference_runtime_installed": hw_report.inference_runtime_installed,
+                "gpu_execution_provider_available": hw_report.gpu_execution_provider_available,
+                "gpu_execution_provider_name": hw_report.gpu_execution_provider_name,
+                "active_device_selected": hw_report.active_device_selected,
+                "device_selection_reason": hw_report.device_selection_reason,
             },
             "dataset": enigma_info,
             "models": model_status,
@@ -86,8 +89,9 @@ class VyomApplication:
         }
 
     def print_diagnostic_banner(self) -> None:
-        """Print structured startup information and component status."""
+        """Print structured startup information and 4-tier hardware diagnostics."""
         status = self.get_system_status()
+        hw = status["hardware_report"]
 
         print("=" * 78)
         print(f" VYOM — Offline Human Activity Recognition & Compliance Monitor (v{status['version']})")
@@ -95,11 +99,14 @@ class VyomApplication:
         print(f" • Mode: {'OFFLINE' if status['offline_mode'] else 'ONLINE'} | Environment: {status['environment']}")
         print(f" • Project Root: {self.config_manager.project_root}")
         print("-" * 78)
-        print(" [COMPUTE & HARDWARE ACCELERATION]")
-        print(f"   Preference:       {status['inference']['preference']}")
-        print(f"   Active Device:    {status['inference']['active_device']}")
-        print(f"   Provider/Status:  {status['inference']['provider']}")
-        print(f"   CPU Fallback:     {'Enabled' if status['inference']['cpu_fallback_allowed'] else 'Disabled'}")
+        print(" [COMPUTE HARDWARE & INFERENCE RUNTIME]")
+        gpu_label = f"{hw['gpu_name']} ({hw['gpu_vram_mb']} MiB)" if hw['physical_gpu_detected'] else "Not detected"
+        print(f"   [1] Physical GPU Detected:   {gpu_label}")
+        print(f"   [2] Inference Runtime:       {hw['inference_runtime_installed']}")
+        prov_label = hw['gpu_execution_provider_name'] if hw['gpu_execution_provider_available'] else "Not available (CPU only)"
+        print(f"   [3] GPU Execution Provider:  {prov_label}")
+        print(f"   [4] Active Device Selected:  {hw['active_device_selected']}")
+        print(f"       Reason: {hw['device_selection_reason']}")
         print("-" * 78)
         print(" [DATASET CONFIGURATION]")
         ds = status["dataset"]
@@ -117,15 +124,37 @@ class VyomApplication:
         print(f"   Default Protocol: {status['protocol']['file']} -> {status['protocol']['status']}")
         print(f"   Rig Reference:    {status['rig']['dictionary']} (Markers: {status['rig']['marker_ids']})")
         print("=" * 78)
-        print(" Repository Foundation Status: READY (Prompt 1 Complete)")
-        print(" Next Phase: Desktop GUI Shell (Prompt 2)")
-        print("=" * 78)
+
+    def run_desktop_app(self) -> int:
+        """Launch the PySide6 desktop GUI workstation."""
+        from PySide6.QtWidgets import QApplication
+        from vyom.ui.main_window import VyomMainWindow
+
+        logger.info("Starting VYOM PySide6 desktop application")
+
+        qt_app = QApplication.instance()
+        if qt_app is None:
+            qt_app = QApplication(sys.argv)
+
+        qt_app.setApplicationName("VYOM")
+        qt_app.setApplicationDisplayName("VYOM — Experiment Monitoring Workstation")
+        qt_app.setApplicationVersion(__version__)
+
+        main_window = VyomMainWindow(self.config_manager)
+        main_window.show()
+
+        return qt_app.exec()
 
 
 def main() -> int:
-    """CLI entry point for VYOM."""
+    """Entry point supporting desktop launch and diagnostic commands."""
     parser = argparse.ArgumentParser(
         description="VYOM: Offline Experiment Procedure Compliance & Activity Monitoring"
+    )
+    parser.add_argument(
+        "--cli",
+        action="store_true",
+        help="Run in headless CLI mode instead of launching the desktop GUI",
     )
     parser.add_argument(
         "--status",
@@ -158,10 +187,19 @@ def main() -> int:
             print(f"ERROR: Protocol validation failed: {e}", file=sys.stderr)
             return 1
 
-    app.print_diagnostic_banner()
-    return 0
+    if args.status or args.cli:
+        app.print_diagnostic_banner()
+        return 0
+
+    # Default action: launch desktop application
+    try:
+        return app.run_desktop_app()
+    except Exception as e:
+        logger.error("GUI launch failed: %s. Falling back to diagnostic status.", e)
+        print(f"GUI launch failed ({e}). Outputting system diagnostics:", file=sys.stderr)
+        app.print_diagnostic_banner()
+        return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

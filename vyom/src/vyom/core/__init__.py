@@ -3,6 +3,7 @@
 from vyom.core.config import (
     ConfigManager,
     HardwareDetector,
+    HardwareReport,
     find_project_root,
     get_config_manager,
     load_config,
@@ -45,6 +46,7 @@ __all__ = [
     "DeviceFallbackWarning",
     "HardwareDetector",
     "HardwareInferenceError",
+    "HardwareReport",
     "InferenceConfig",
     "InferenceDevice",
     "LoggingConfig",
@@ -61,4 +63,3 @@ __all__ = [
     "load_config",
     "setup_logging",
 ]
-

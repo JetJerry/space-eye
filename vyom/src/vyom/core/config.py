@@ -1,7 +1,8 @@
-"""Configuration management and validation for VYOM.
+"""Configuration management and hardware inspection for VYOM.
 
-Handles JSON configuration file loading, environment overrides, schema validation,
-dataset path resolution, and inference device selection with graceful CPU fallback.
+Handles JSON configuration loading, environment overrides, schema validation,
+dataset path resolution, and multi-tier hardware inspection distinguishing
+physical GPU detection from actual inference provider availability.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import os
 import shutil
 import subprocess
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -25,6 +27,7 @@ from vyom.core.exceptions import (
 from vyom.core.logging_setup import get_logger
 from vyom.core.schemas import (
     CameraConfig,
+    GPUBackend,
     InferenceConfig,
     InferenceDevice,
     ProtocolSchema,
@@ -55,56 +58,152 @@ def find_project_root(start_path: Optional[Path] = None) -> Path:
     return current
 
 
+@dataclass
+class HardwareReport:
+    """Comprehensive multi-tier hardware and inference runtime inspection report.
+
+    Distinguishes physical GPU hardware detection from inference runtime installation
+    and execution-provider registration.
+    """
+    gpu_hardware_detected: bool
+    gpu_name: Optional[str]
+    gpu_vram_mb: Optional[int]
+    inference_runtime_installed: str
+    gpu_execution_provider_available: bool
+    gpu_execution_provider_name: Optional[str]
+    active_device_selected: str  # "CPU" or "GPU"
+    device_selection_reason: str
+
+    def summary_line(self) -> str:
+        """One-line concise hardware summary for status bars."""
+        hw = self.gpu_name if self.gpu_hardware_detected else "None"
+        prov = self.gpu_execution_provider_name if self.gpu_execution_provider_available else "None"
+        return f"Hardware: {hw} | Runtime: {self.inference_runtime_installed} | Provider: {prov} | Active: {self.active_device_selected}"
+
+
 class HardwareDetector:
-    """Inspects local compute hardware (CPU, NVIDIA GPU) safely without heavy dependencies."""
+    """Inspects compute hardware and distinguishes physical devices from active inference providers."""
 
     @staticmethod
-    def is_cuda_available() -> Tuple[bool, str]:
-        """Detect whether NVIDIA CUDA acceleration is genuinely usable.
+    def detect_physical_gpu() -> Tuple[bool, Optional[str], Optional[int]]:
+        """Inspect physical GPU hardware via nvidia-smi on Windows.
 
         Returns:
-            Tuple of (is_available, description_or_reason)
+            Tuple of (detected: bool, gpu_name: Optional[str], vram_mb: Optional[int])
         """
-        # First check via torch if it is installed
-        try:
-            import torch  # type: ignore
-
-            if torch.cuda.is_available():
-                device_count = torch.cuda.device_count()
-                device_name = torch.cuda.get_device_name(0) if device_count > 0 else "CUDA Device"
-                return True, f"PyTorch CUDA active: {device_name} ({device_count} device(s))"
-            return False, "PyTorch installed but CUDA is not available on this system"
-        except ImportError:
-            pass
-
-        # Check via onnxruntime if installed
-        try:
-            import onnxruntime as ort  # type: ignore
-
-            providers = ort.get_available_providers()
-            if "CUDAExecutionProvider" in providers:
-                return True, "ONNX Runtime CUDAExecutionProvider is available"
-        except ImportError:
-            pass
-
-        # Fallback inspection: check nvidia-smi on Windows
         nvidia_smi = shutil.which("nvidia-smi")
         if nvidia_smi:
             try:
                 res = subprocess.run(
-                    [nvidia_smi, "--query-gpu=name,memory.total", "--format=csv,noheader"],
+                    [nvidia_smi, "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
                     capture_output=True,
                     text=True,
                     timeout=3,
                     check=False,
                 )
                 if res.returncode == 0 and res.stdout.strip():
-                    gpu_info = res.stdout.strip().split("\n")[0]
-                    return True, f"NVIDIA GPU detected via nvidia-smi: {gpu_info} (PyTorch/CUDA runtime not yet loaded)"
+                    first_line = res.stdout.strip().split("\n")[0]
+                    parts = [p.strip() for p in first_line.split(",")]
+                    name = parts[0]
+                    vram = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+                    return True, name, vram
             except Exception:
                 pass
+        return False, None, None
 
-        return False, "No active NVIDIA CUDA GPU detected; CPU execution provider recommended"
+    @staticmethod
+    def inspect_inference_runtime() -> Tuple[str, bool, Optional[str]]:
+        """Check installed inference runtimes and actual CUDA execution provider registration.
+
+        Returns:
+            Tuple of (runtime_installed: str, cuda_provider_available: bool, provider_name: Optional[str])
+        """
+        runtime_desc = "None (No inference runtime loaded)"
+        cuda_provider_available = False
+        provider_name = None
+
+        # 1. Check ONNX Runtime (Deployment Inference Engine)
+        try:
+            import onnxruntime as ort  # type: ignore
+
+            ver = getattr(ort, "__version__", "unknown")
+            runtime_desc = f"ONNX Runtime {ver}"
+            providers = ort.get_available_providers()
+            if "CUDAExecutionProvider" in providers:
+                cuda_provider_available = True
+                provider_name = "CUDAExecutionProvider"
+            elif "DmlExecutionProvider" in providers:
+                provider_name = "DmlExecutionProvider"
+            return runtime_desc, cuda_provider_available, provider_name
+        except ImportError:
+            pass
+
+        # 2. Check PyTorch (Training / Validation Engine)
+        try:
+            import torch  # type: ignore
+
+            ver = getattr(torch, "__version__", "unknown")
+            runtime_desc = f"PyTorch {ver}"
+            if torch.cuda.is_available():
+                cuda_provider_available = True
+                provider_name = "torch.cuda"
+            return runtime_desc, cuda_provider_available, provider_name
+        except ImportError:
+            pass
+
+        return runtime_desc, False, None
+
+    @classmethod
+    def generate_report(
+        cls,
+        preference: InferenceDevice = InferenceDevice.AUTO,
+        backend: GPUBackend = GPUBackend.CUDA,
+        allow_cpu_fallback: bool = True,
+    ) -> HardwareReport:
+        """Generate a complete multi-tier hardware inspection report with safe device selection."""
+        has_gpu, gpu_name, vram_mb = cls.detect_physical_gpu()
+        runtime_desc, provider_available, provider_name = cls.inspect_inference_runtime()
+
+        # Decision Logic:
+        # A detected physical GPU must NEVER automatically be reported as an active CUDA device
+        # unless an actual execution provider is confirmed operational.
+        if preference == InferenceDevice.CPU:
+            selected_device = "CPU"
+            reason = "Explicitly configured for CPU inference."
+        elif preference == InferenceDevice.GPU:
+            if provider_available:
+                selected_device = "GPU"
+                reason = f"GPU execution provider active ({provider_name}) on {gpu_name}."
+            elif allow_cpu_fallback:
+                selected_device = "CPU"
+                gpu_msg = f" (Physical GPU: {gpu_name})" if has_gpu else ""
+                reason = f"GPU preference requested but CUDA execution provider not installed{gpu_msg}. Safe CPU fallback active."
+                warnings.warn(reason, category=DeviceFallbackWarning, stacklevel=2)
+            else:
+                raise HardwareInferenceError(
+                    f"GPU preference requested but no CUDA execution provider is available (Physical GPU: {gpu_name}). CPU fallback disabled."
+                )
+        else:  # AUTO Preference
+            if provider_available:
+                selected_device = "GPU"
+                reason = f"AUTO selected verified GPU execution provider ({provider_name}) on {gpu_name}."
+            else:
+                selected_device = "CPU"
+                if has_gpu:
+                    reason = f"AUTO selected CPU fallback. Physical GPU ({gpu_name}) detected, but CUDA execution provider is not installed."
+                else:
+                    reason = "AUTO selected CPU (no compatible GPU hardware detected)."
+
+        return HardwareReport(
+            gpu_hardware_detected=has_gpu,
+            gpu_name=gpu_name,
+            gpu_vram_mb=vram_mb,
+            inference_runtime_installed=runtime_desc,
+            gpu_execution_provider_available=provider_available,
+            gpu_execution_provider_name=provider_name,
+            active_device_selected=selected_device,
+            device_selection_reason=reason,
+        )
 
 
 class ConfigManager:
@@ -184,38 +283,19 @@ class ConfigManager:
         )
         return validated_config
 
-    def resolve_inference_device(self, config: Optional[InferenceConfig] = None) -> Tuple[str, str]:
-        """Determine the actual execution device and provider based on preference and hardware.
-
-        Returns:
-            Tuple of (effective_device: "CPU" | "GPU", provider_description: str)
-        """
+    def get_hardware_report(self, config: Optional[InferenceConfig] = None) -> HardwareReport:
+        """Inspect hardware and generate the 4-tier hardware report."""
         inf = config or self.config.inference
-        cuda_ok, cuda_msg = HardwareDetector.is_cuda_available()
+        return HardwareDetector.generate_report(
+            preference=inf.device_preference,
+            backend=inf.gpu_backend,
+            allow_cpu_fallback=inf.allow_cpu_fallback,
+        )
 
-        if inf.device_preference == InferenceDevice.CPU:
-            return "CPU", "Explicitly configured for CPU execution"
-
-        if inf.device_preference == InferenceDevice.GPU:
-            if cuda_ok:
-                return "GPU", f"Using GPU backend ({inf.gpu_backend}): {cuda_msg}"
-            if inf.allow_cpu_fallback:
-                warnings.warn(
-                    f"GPU preference requested but unavailable ({cuda_msg}). Falling back to CPU.",
-                    category=DeviceFallbackWarning,
-                    stacklevel=2,
-                )
-                logger.warning("GPU requested but unavailable (%s). Safe fallback to CPU active.", cuda_msg)
-                return "CPU", f"Safe CPU fallback (GPU unavailable: {cuda_msg})"
-            raise HardwareInferenceError(f"GPU requested but unavailable and CPU fallback is disabled: {cuda_msg}")
-
-        # AUTO Preference: select GPU only if genuinely verified, otherwise safe CPU
-        if cuda_ok:
-            logger.info("AUTO device preference selected GPU: %s", cuda_msg)
-            return "GPU", f"AUTO selected GPU ({inf.gpu_backend}): {cuda_msg}"
-
-        logger.info("AUTO device preference selected CPU: %s", cuda_msg)
-        return "CPU", f"AUTO selected CPU: {cuda_msg}"
+    def resolve_inference_device(self, config: Optional[InferenceConfig] = None) -> Tuple[str, str]:
+        """Determine effective execution device and reason string."""
+        report = self.get_hardware_report(config)
+        return report.active_device_selected, report.device_selection_reason
 
     def validate_enigma360_dataset(self) -> Dict[str, Any]:
         """Inspect the external ENIGMA-360 dataset path without modifying files."""
@@ -347,4 +427,3 @@ def get_config_manager(project_root: Optional[Path] = None) -> ConfigManager:
 def load_config(config_dir: Optional[Path | str] = None) -> VyomConfig:
     """Convenience function to load and validate configuration."""
     return get_config_manager().load(config_dir=config_dir)
-

@@ -52,6 +52,13 @@ def test_inference_device_resolution():
     assert device in ("CPU", "GPU")
     assert isinstance(desc, str) and len(desc) > 0
 
+    report = manager.get_hardware_report()
+    assert hasattr(report, "gpu_hardware_detected")
+    assert hasattr(report, "inference_runtime_installed")
+    assert hasattr(report, "gpu_execution_provider_available")
+    assert hasattr(report, "active_device_selected")
+    assert report.active_device_selected == device
+
 
 def test_sample_protocol_loading():
     root = find_project_root()
