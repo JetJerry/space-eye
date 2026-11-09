@@ -25,6 +25,7 @@ from vyom.ui.styles import (
     TEXT_MUTED,
     TEXT_PRIMARY,
 )
+from vyom.vision.aruco_tracker import ArucoDetectionResult, RigTrackingState
 
 
 class EventPanel(QFrame):
@@ -88,8 +89,8 @@ class EventPanel(QFrame):
         self.hands_status_lbl = QLabel("MediaPipe: NOT LOADED")
         self.hands_status_lbl.setStyleSheet("font-size: 11px; color: #d29922; font-weight: 600;")
 
-        self.aruco_status_lbl = QLabel("ArUco: UNCALIBRATED (DICT_4X4_50)")
-        self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6;")
+        self.aruco_status_lbl = QLabel("ArUco: NOT INITIALIZED")
+        self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
 
         self.fps_status_lbl = QLabel("FPS: -- (0 dropped)")
         self.fps_status_lbl.setStyleSheet("font-size: 11px; color: #65768d;")
@@ -104,7 +105,6 @@ class EventPanel(QFrame):
         layout.addLayout(status_bar)
 
         # 4. Multi-tier Hardware and Inference Status Line
-        # Distinguishes: Physical GPU, Inference Runtime, Execution Provider, Active Selection
         self.hw_status_label = QLabel("Hardware: Detecting...")
         self.hw_status_label.setStyleSheet("font-size: 10px; color: #8fa1b6; font-family: monospace;")
         layout.addWidget(self.hw_status_label)
@@ -172,7 +172,27 @@ class EventPanel(QFrame):
         else:
             self.cam_status_lbl.setText("Camera: DISCONNECTED")
             self.cam_status_lbl.setStyleSheet("font-size: 11px; color: #f85149; font-weight: 600;")
+            self.aruco_status_lbl.setText("ArUco: NOT INITIALIZED")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
         self.fps_status_lbl.setText(f"FPS: {fps:.1f} ({dropped} dropped)")
+
+    def set_aruco_status(self, result: ArucoDetectionResult) -> None:
+        """Update ArUco status label in the subsystem diagnostics strip."""
+        if result.state == RigTrackingState.RIG_TRACKING:
+            self.aruco_status_lbl.setText(f"ArUco: RIG TRACKING (IDs: {result.configured_ids_visible})")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #2ea043; font-weight: 600;")
+        elif result.state == RigTrackingState.CALIBRATION_REQUIRED:
+            self.aruco_status_lbl.setText(f"ArUco: {len(result.configured_ids_visible)} DETECTED (CALIBRATION REQUIRED)")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #d29922; font-weight: 600;")
+        elif result.state == RigTrackingState.MARKERS_DETECTED:
+            self.aruco_status_lbl.setText(f"ArUco: {len(result.configured_ids_visible)} DETECTED (SEARCHING ORIGIN)")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #2f81f7; font-weight: 600;")
+        elif result.state == RigTrackingState.SEARCHING:
+            self.aruco_status_lbl.setText("ArUco: SEARCHING (DICT_4X4_50)")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #8fa1b6; font-weight: 600;")
+        else:
+            self.aruco_status_lbl.setText("ArUco: NOT INITIALIZED")
+            self.aruco_status_lbl.setStyleSheet("font-size: 11px; color: #65768d; font-weight: 600;")
 
     def set_hardware_report(self, report: HardwareReport) -> None:
         """Render the 4-tier hardware status distinguishing physical GPU from execution provider."""

@@ -1,8 +1,9 @@
-"""Primary desktop application window for VYOM with OpenCV video capture integration."""
+"""Primary desktop application window for VYOM with OpenCV capture and ArUco rig tracking."""
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
+import numpy as np
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QCloseEvent, QImage
 from PySide6.QtWidgets import (
@@ -27,12 +28,14 @@ from vyom.ui.session_panel import SessionPanel
 from vyom.ui.settings_dialog import SettingsDialog
 from vyom.ui.styles import APPLICATION_STYLESHEET
 from vyom.ui.top_bar import TopBar
+from vyom.vision.aruco_tracker import ArucoDetectionResult, ArucoTracker, RigTrackingState
+from vyom.vision.drawing import draw_aruco_overlays
 
 logger = get_logger("ui.main_window")
 
 
 class VyomMainWindow(QMainWindow):
-    """Main desktop monitoring workstation integrating OpenCV capture with PySide6 dashboard."""
+    """Main desktop monitoring workstation integrating OpenCV capture and ArUco tracking."""
 
     def __init__(self, config_manager: ConfigManager | None = None) -> None:
         super().__init__()
@@ -52,6 +55,10 @@ class VyomMainWindow(QMainWindow):
         self._active_recorder: Optional[SessionRecorder] = None
         self._active_session_id: Optional[str] = None
 
+        # ArUco Fiducial and Rig Reference Tracking Engine
+        self.aruco_tracker = ArucoTracker(self.config.rig)
+        self._last_logged_aruco_state: Optional[RigTrackingState] = None
+
         self._init_ui()
         self._init_data()
         self._connect_signals()
@@ -59,7 +66,7 @@ class VyomMainWindow(QMainWindow):
         # Check for pre-existing downloaded ENIGMA-360 videos for easy 1-click loading
         self._check_initial_dataset_video()
 
-        logger.info("VyomMainWindow initialized with OpenCV capture architecture")
+        logger.info("VyomMainWindow initialized with ArUco tracking subsystem")
 
     def _init_ui(self) -> None:
         """Construct the mission control desktop layout."""
@@ -137,13 +144,13 @@ class VyomMainWindow(QMainWindow):
         self.session_panel.set_session_state("IDLE")
         self.top_bar.set_session_status("IDLE")
         self.event_panel.set_subsystem_statuses(camera_connected=False)
+        self.live_monitor.set_aruco_tracking_status(RigTrackingState.NOT_INITIALIZED, 0)
 
     def _check_initial_dataset_video(self) -> None:
         """Pre-populate file selector with first available ENIGMA-360 exocentric video if present."""
         enigma_dir = self.config.datasets.enigma360_path
         videos_dir = enigma_dir / "data" / "videos"
         if videos_dir.exists():
-            # Find first completed third_person (exocentric) video
             for mp4_file in videos_dir.glob("*/*third_person.mp4"):
                 if mp4_file.stat().st_size > 1000:
                     logger.info("Discovered available ENIGMA-360 video: %s", mp4_file.name)
@@ -160,6 +167,35 @@ class VyomMainWindow(QMainWindow):
         self.session_panel.reset_requested.connect(self._handle_reset_session)
         self.session_panel.protocol_changed.connect(self._handle_protocol_selected)
         self.session_panel.source_changed.connect(self._handle_source_changed)
+
+    # ==========================================================================
+    # Background Vision Processing Pipeline (Off GUI Thread)
+    # ==========================================================================
+
+    def _vision_frame_processor(
+        self,
+        frame_bgr: np.ndarray,
+        timestamp_s: float,
+        frame_idx: int,
+    ) -> Tuple[np.ndarray, Any]:
+        """Runs inside CaptureWorker QThread to process frame and render ArUco overlays."""
+        # 1. Detect ArUco fiducials and compute rig reference
+        detection_result = self.aruco_tracker.detect(frame_bgr, timestamp_s)
+
+        # 2. Draw annotations and 3D axes (if calibrated) onto preview frame
+        calib = self.aruco_tracker.rig_coords.calibration if self.aruco_tracker.rig_coords.is_calibrated else None
+        cam_mtx = calib.camera_matrix if calib else None
+        dist_coef = calib.dist_coeffs if calib else None
+
+        annotated_bgr = draw_aruco_overlays(
+            frame_bgr,
+            detection_result,
+            camera_matrix=cam_mtx,
+            dist_coeffs=dist_coef,
+            axis_length_m=self.aruco_tracker.marker_size_m * 0.8,
+        )
+
+        return annotated_bgr, detection_result
 
     # ==========================================================================
     # Video Capture Worker Management
@@ -204,10 +240,8 @@ class VyomMainWindow(QMainWindow):
         if source is None:
             return
 
-        # Generate unique session identifier
         self._active_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # Optional Local Recording
         recorder: Optional[SessionRecorder] = None
         if self.session_panel.is_recording_enabled:
             rec_dir = self.config.storage.sessions_dir / "recordings"
@@ -221,12 +255,20 @@ class VyomMainWindow(QMainWindow):
             self._active_recorder = recorder
             self.live_monitor.set_recording_status(True)
 
-        # Initialize CaptureWorker thread
+        # Reset ArUco tracking state
+        self._last_logged_aruco_state = None
+
+        # Initialize CaptureWorker thread with vision processor
         self._capture_worker = CaptureWorker(self)
-        self._capture_worker.configure(source=source, recorder=recorder)
+        self._capture_worker.configure(
+            source=source,
+            recorder=recorder,
+            frame_processor=self._vision_frame_processor,
+        )
 
         # Wire thread signals
         self._capture_worker.frame_ready.connect(self._on_frame_ready)
+        self._capture_worker.vision_result_ready.connect(self._on_vision_result_ready)
         self._capture_worker.source_opened.connect(self._on_source_opened)
         self._capture_worker.source_closed.connect(self._on_source_closed)
         self._capture_worker.source_error.connect(self._on_source_error)
@@ -234,13 +276,11 @@ class VyomMainWindow(QMainWindow):
         self._capture_worker.recording_started.connect(self._on_recording_started)
         self._capture_worker.recording_stopped.connect(self._on_recording_stopped)
 
-        # Update UI states
         self._session_state = "ACTIVE"
         self.session_panel.set_session_state("ACTIVE")
         self.top_bar.set_session_status("ACTIVE")
         self.live_monitor.set_camera_status(True, source.get_metadata().source_label)
 
-        # Start background thread
         self._capture_worker.start()
 
     @Slot(QImage, int, float)
@@ -248,9 +288,48 @@ class VyomMainWindow(QMainWindow):
         """Handle incoming frame from worker thread and render to viewport."""
         self.live_monitor.update_frame_qimage(qimg, frame_idx, timestamp_s)
 
+    @Slot(object)
+    def _on_vision_result_ready(self, result: object) -> None:
+        """Handle perception detection result emitted from background worker."""
+        if not isinstance(result, ArucoDetectionResult):
+            return
+
+        # 1. Update Monitor ArUco badge
+        self.live_monitor.set_aruco_tracking_status(
+            state=result.state,
+            configured_count=len(result.configured_ids_visible),
+            total_configured=len(self.aruco_tracker.configured_marker_ids),
+        )
+
+        # 2. Update Event Panel ArUco indicator
+        self.event_panel.set_aruco_status(result)
+
+        # 3. Log state changes to audit timeline (without spamming every frame)
+        if result.state != self._last_logged_aruco_state:
+            self._last_logged_aruco_state = result.state
+            if result.state == RigTrackingState.RIG_TRACKING:
+                self.event_panel.add_event(
+                    severity="INFO",
+                    source="ARUCO",
+                    description=f"Rig workspace reference established. Origin marker ID {self.aruco_tracker.origin_marker_id} visible (Active IDs: {result.configured_ids_visible}).",
+                    hash_digest="aruco:rig_tracking",
+                )
+            elif result.state == RigTrackingState.CALIBRATION_REQUIRED:
+                self.event_panel.add_event(
+                    severity="WARNING",
+                    source="ARUCO",
+                    description=f"ArUco marker IDs {result.configured_ids_visible} detected. 2D pixels tracked; 3D metric coordinates unavailable (camera calibration required).",
+                    hash_digest="aruco:uncalibrated",
+                )
+            elif result.state == RigTrackingState.SEARCHING:
+                self.event_panel.add_event(
+                    severity="INFO",
+                    source="ARUCO",
+                    description="ArUco fiducials not currently in view. Searching for DICT_4X4_50...",
+                )
+
     @Slot(str, int, int, float)
     def _on_source_opened(self, source_name: str, width: int, height: int, fps: float) -> None:
-        """Source successfully initialized."""
         self.live_monitor.set_source_info(source_name, width, height, fps)
         self.event_panel.set_subsystem_statuses(
             camera_connected=True,
@@ -265,7 +344,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot()
     def _on_source_closed(self) -> None:
-        """Source reached EOF or was stopped."""
         self._session_state = "IDLE"
         self.session_panel.set_session_state("IDLE")
         self.top_bar.set_session_status("IDLE")
@@ -281,7 +359,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot(str)
     def _on_source_error(self, error_msg: str) -> None:
-        """Capture error notification."""
         self.event_panel.add_event(
             severity="WARNING",
             source="CAPTURE",
@@ -290,7 +367,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot(float, int)
     def _on_fps_measured(self, fps: float, dropped: int) -> None:
-        """Update FPS display from worker metrics."""
         self.live_monitor.set_measured_fps(fps)
         self.event_panel.set_subsystem_statuses(
             camera_connected=(self._session_state == "ACTIVE"),
@@ -301,7 +377,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot(str)
     def _on_recording_started(self, file_path: str) -> None:
-        """Notification that recording is writing to disk."""
         self.live_monitor.set_recording_status(True)
         self.event_panel.add_event(
             severity="INFO",
@@ -311,7 +386,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot(str, int, float)
     def _on_recording_stopped(self, file_path: str, total_frames: int, duration_s: float) -> None:
-        """Notification that recording file is finalized."""
         self.live_monitor.set_recording_status(False)
         self.event_panel.add_event(
             severity="INFO",
@@ -321,7 +395,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot()
     def _handle_pause_session(self) -> None:
-        """Toggle capture worker pause state."""
         if self._capture_worker is None:
             return
 
@@ -348,7 +421,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot()
     def _handle_stop_session(self) -> None:
-        """Stop capture worker thread."""
         if self._capture_worker is not None:
             self._capture_worker.stop_capture()
             self._capture_worker = None
@@ -362,7 +434,6 @@ class VyomMainWindow(QMainWindow):
 
     @Slot()
     def _handle_reset_session(self) -> None:
-        """Reset capture and protocol progress."""
         self._handle_stop_session()
         self.protocol_panel.set_current_step(0)
         self.event_panel.clear_timeline()

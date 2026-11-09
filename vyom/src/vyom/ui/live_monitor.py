@@ -22,6 +22,7 @@ from vyom.ui.styles import (
     TEXT_MUTED,
     TEXT_PRIMARY,
 )
+from vyom.vision.aruco_tracker import RigTrackingState
 
 
 class VideoViewport(QWidget):
@@ -112,7 +113,7 @@ class VideoViewport(QWidget):
 
 
 class LiveMonitor(QFrame):
-    """Main video monitoring container with status header and reserved overlay zones."""
+    """Main video monitoring container with status header and perception overlay badges."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -146,13 +147,12 @@ class LiveMonitor(QFrame):
         layout.addWidget(self.viewport, stretch=1)
 
         # Bottom Reserved Perception Overlay Strip
-        # Explicitly reserves visual space for YOLO, MediaPipe, and ArUco overlays
         overlay_strip = QHBoxLayout()
         overlay_strip.setSpacing(8)
 
         self.yolo_overlay_badge = StatusBadge("YOLO-OBB: NOT CONFIGURED", color=COLOR_WARNING)
         self.mediapipe_overlay_badge = StatusBadge("HANDS: NOT LOADED", color=COLOR_WARNING)
-        self.aruco_overlay_badge = StatusBadge("ARUCO: UNCALIBRATED", color=COLOR_ACCENT)
+        self.aruco_overlay_badge = StatusBadge("ARUCO: NOT INITIALIZED", color="#65768d")
 
         self.frame_counter_label = QLabel("Frame: 0 | Monotonic: 0.000s")
         self.frame_counter_label.setStyleSheet("font-size: 11px; color: #65768d; font-family: monospace;")
@@ -173,6 +173,7 @@ class LiveMonitor(QFrame):
                 "CONNECTING TO VIDEO SOURCE...",
                 "Waiting for initial frame...",
             )
+            self.aruco_overlay_badge.set_badge_color(COLOR_ACCENT, "ARUCO: SEARCHING")
         else:
             self.viewport.set_pixmap(None)
             self.viewport.set_status_message(
@@ -181,6 +182,7 @@ class LiveMonitor(QFrame):
             )
             self.fps_badge.setText("-- FPS")
             self.latency_label.setText("Latency: -- ms")
+            self.aruco_overlay_badge.set_badge_color("#65768d", "ARUCO: NOT INITIALIZED")
 
     def set_source_info(self, label: str, width: int, height: int, fps: float) -> None:
         """Update header with negotiated stream resolution and FPS."""
@@ -193,6 +195,28 @@ class LiveMonitor(QFrame):
     def set_recording_status(self, recording: bool) -> None:
         """Toggle recording badge visibility."""
         self.recording_badge.setVisible(recording)
+
+    def set_aruco_tracking_status(self, state: RigTrackingState, configured_count: int, total_configured: int = 4) -> None:
+        """Update ArUco badge according to Prompt 5 status requirements."""
+        if state == RigTrackingState.RIG_TRACKING:
+            self.aruco_overlay_badge.set_badge_color(
+                COLOR_SUCCESS,
+                f"ARUCO: RIG TRACKING ({configured_count}/{total_configured})",
+            )
+        elif state == RigTrackingState.CALIBRATION_REQUIRED:
+            self.aruco_overlay_badge.set_badge_color(
+                COLOR_WARNING,
+                f"ARUCO: {configured_count} DETECTED (CALIBRATION REQUIRED)",
+            )
+        elif state == RigTrackingState.MARKERS_DETECTED:
+            self.aruco_overlay_badge.set_badge_color(
+                COLOR_ACCENT,
+                f"ARUCO: MARKERS DETECTED ({configured_count}/{total_configured})",
+            )
+        elif state == RigTrackingState.SEARCHING:
+            self.aruco_overlay_badge.set_badge_color(COLOR_ACCENT, "ARUCO: SEARCHING")
+        else:
+            self.aruco_overlay_badge.set_badge_color("#65768d", "ARUCO: NOT INITIALIZED")
 
     def update_frame_qimage(self, qimg: QImage, frame_idx: int = 0, timestamp_s: float = 0.0) -> None:
         """Display newly acquired frame from QImage."""

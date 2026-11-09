@@ -1,11 +1,25 @@
-"""Perception pipeline combining YOLOv8-OBB, MediaPipe Hands, and ArUco markers.
+"""Computer vision perception pipeline and fiducial tracking package."""
 
-Planned components (Prompts 4, 5, 7):
-- pipeline.py: Central perception loop and multi-model synchronization.
-- object_detector.py: YOLOv8-OBB detector (PyTorch & ONNX Runtime with CPU/CUDA).
-- hand_tracker.py: MediaPipe Tasks Hand Landmarker (21 landmarks).
-- aruco_tracker.py: OpenCV ArUco detector and pose estimator.
-- calibration.py: Camera calibration matrix and rig-relative transformation.
-- drawing.py: Modular OpenCV overlay renderer for detections and landmarks.
-"""
+from vyom.vision.aruco_tracker import (
+    ArucoDetectionResult,
+    ArucoTracker,
+    DetectedMarker,
+    RigTrackingState,
+)
+from vyom.vision.calibration import (
+    CameraCalibration,
+    CheckerboardCalibrator,
+    RigCoordinateSystem,
+)
+from vyom.vision.drawing import draw_aruco_overlays
 
+__all__ = [
+    "ArucoDetectionResult",
+    "ArucoTracker",
+    "CameraCalibration",
+    "CheckerboardCalibrator",
+    "DetectedMarker",
+    "RigCoordinateSystem",
+    "RigTrackingState",
+    "draw_aruco_overlays",
+]
